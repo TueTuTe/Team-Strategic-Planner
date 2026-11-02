@@ -1,0 +1,135 @@
+// Waypoints follow open aisles, the Strategy entrance and the tatami steps.
+export const walkNodes = {
+  north: [0, 0, -1.8], middle: [0, 0, 2], south: [0, 0, 5.5], meetingHall: [0, 0, -.1],
+  strategyDoor: [-3.45, 0, -2], strategyAisle: [-3.45, 0, -5.95], strategy: [-5.65, 0, -5.95],
+  rearWest: [-6.5, 0, -.8], rearEast: [-3.2, 0, -.8], insight: [-6.5, 0, .52], account: [-3.2, 0, .52],
+  frontWest: [-6.5, 0, 5.1], frontEast: [-3.2, 0, 5.1], creative: [-6.5, 0, 3.88], media: [-3.2, 0, 3.88],
+  socialA: [-.65, 0, 5.8], socialB: [.65, 0, 5.8],
+  callStrategy: [-.65, 0, 4.7], callInsight: [-.65, 0, 6.6], callCreative: [-.65, 0, 5.8], callMedia: [.65, 0, 5.8], callAccount: [.65, 0, 6.6],
+  meetingEntry: [2.4, 0, -.3], meetingA: [2.4, 0, -2], meetingB: [2.4, 0, -3.35],
+  teaLow: [1.2, 0, 4.05], teaStep: [1.85, .2, 4.05], teaEntry: [2.45, .42, 4.05], teaA: [3, .42, 4.8], teaB: [3, .42, 5.85],
+};
+const links = [
+  ['north', 'meetingHall'], ['meetingHall', 'middle'], ['middle', 'south'], ['north', 'strategyDoor'], ['strategyDoor', 'strategyAisle'], ['strategyAisle', 'strategy'],
+  ['north', 'rearEast'], ['rearEast', 'rearWest'], ['rearWest', 'insight'], ['rearEast', 'account'],
+  ['south', 'frontEast'], ['frontEast', 'frontWest'], ['frontWest', 'creative'], ['frontEast', 'media'],
+  ['south', 'socialA'], ['south', 'socialB'], ['south', 'callStrategy'], ['socialA', 'callCreative'], ['socialB', 'callMedia'], ['socialA', 'callInsight'], ['socialB', 'callAccount'],
+  ['meetingHall', 'meetingEntry'], ['meetingEntry', 'meetingA'], ['meetingA', 'meetingB'],
+  ['middle', 'teaLow'], ['teaLow', 'teaStep'], ['teaStep', 'teaEntry'], ['teaEntry', 'teaA'], ['teaA', 'teaB'],
+];
+const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+export function walkRoute(start, target) {
+  if (!walkNodes[start] || !walkNodes[target]) throw new Error('Unknown office waypoint');
+  const cost = new Map([[start, 0]]), previous = new Map(), todo = new Set(Object.keys(walkNodes));
+  while (todo.size) {
+    const current = [...todo].sort((a, b) => (cost.get(a) ?? Infinity) - (cost.get(b) ?? Infinity))[0];
+    if (current === target) break;
+    todo.delete(current);
+    for (const edge of links) {
+      if (!edge.includes(current)) continue;
+      const next = edge[0] === current ? edge[1] : edge[0];
+      const candidate = (cost.get(current) ?? Infinity) + distance(walkNodes[current], walkNodes[next]);
+      if (candidate < (cost.get(next) ?? Infinity)) { cost.set(next, candidate); previous.set(next, current); }
+    }
+  }
+  const route = [target];
+  while (route[0] !== start) { const parent = previous.get(route[0]); if (!parent) throw new Error('No walkable route'); route.unshift(parent); }
+  return route;
+}
+
+const callNodes = { strategy: 'callStrategy', insight: 'callInsight', creative: 'callCreative', media: 'callMedia', account: 'callAccount' };
+export class OfficeNavigation {
+  constructor({ seats, getName = id => id, onAmbient = () => {}, onCallArrival = () => {} }) {
+    this.time = 0; this.nextSocial = 3; this.quietUntil = 0; this.round = 0; this.pair = null;
+    this.getName = getName; this.onAmbient = onAmbient; this.onCallArrival = onCallArrival;
+    this.actors = new Map(Object.entries(seats).map(([id, seat]) => [id, { id, position: [seat.x, 0, seat.z], heading: seat.rotation, homeRotation: seat.rotation, pose: 'seated', route: [], destination: id, busy: false, reason: 'home', callbacks: [] }]));
+  }
+  atDesk(id) { const actor = this.actors.get(id); return actor && actor.destination === id && !actor.route.length && distance(actor.position, walkNodes[id]) < .01; }
+  move(id, destination, reason = 'idle') {
+    const actor = this.actors.get(id); if (!actor) return;
+    const nearest = Object.keys(walkNodes).sort((a, b) => distance(actor.position, walkNodes[a]) - distance(actor.position, walkNodes[b]))[0];
+    const path = walkRoute(nearest, destination);
+    actor.route = path.map(key => [...walkNodes[key]]);
+    if (distance(actor.position, actor.route[0]) < .01) actor.route.shift();
+    actor.destination = destination; actor.reason = reason; actor.pose = actor.route.length ? 'walking' : destination === id ? 'seated' : 'standing';
+    if (!actor.route.length) this.arrive(actor);
+  }
+  home(id, callback) {
+    const actor = this.actors.get(id); if (!actor) return;
+    if (callback) actor.callbacks.push(callback);
+    if (this.atDesk(id)) { this.arrive(actor); return; }
+    if (actor.destination !== id || !actor.route.length) this.move(id, id, 'home');
+  }
+  arrive(actor) {
+    actor.pose = actor.destination === actor.id ? 'seated' : 'standing';
+    if (actor.pose === 'seated') {
+      actor.heading = actor.homeRotation; actor.reason = 'home';
+      const callbacks = actor.callbacks.splice(0); callbacks.forEach(callback => callback());
+    } else if (actor.reason === 'idle') {
+      actor.returnAt = this.time + 7; actor.reason = 'loitering';
+      this.onAmbient(actor.id, 'Mình chưa có task nên ra đi dạo một chút. Có việc mới mình về bàn ngay nhé.');
+    } else if (actor.reason === 'called') {
+      actor.returnAt = this.time + 13; actor.reason = 'listening'; this.onCallArrival(actor.id);
+    }
+  }
+  cancelPair() {
+    if (!this.pair) return;
+    const pair = this.pair; this.pair = null;
+    for (const id of pair.ids) this.home(id);
+    this.nextSocial = this.time + 12;
+  }
+  setBusy(id, busy) {
+    const actor = this.actors.get(id); if (!actor || actor.busy === busy) return;
+    actor.busy = busy;
+    if (busy) { if (this.pair?.ids.includes(id)) this.cancelPair(); this.home(id); }
+  }
+  call(id) {
+    const actor = this.actors.get(id); if (!actor) return;
+    if (this.pair?.ids.includes(id)) this.cancelPair();
+    this.quietFor(12); this.move(id, callNodes[id], 'called');
+  }
+  quietFor(seconds) { this.quietUntil = Math.max(this.quietUntil, this.time + seconds); }
+  freezeAtDesks() {
+    this.pair = null; this.nextSocial = this.time + 5;
+    for (const actor of this.actors.values()) { actor.position = [...walkNodes[actor.id]]; actor.destination = actor.id; actor.route = []; this.arrive(actor); }
+  }
+  step(delta) {
+    const dt = Math.max(0, Math.min(delta, .12)); this.time += dt;
+    for (const actor of this.actors.values()) {
+      let remaining = dt * 1.8;
+      while (remaining > 0 && actor.route.length) {
+        const target = actor.route[0], length = distance(actor.position, target);
+        if (length < .001) { actor.route.shift(); if (!actor.route.length) this.arrive(actor); continue; }
+        actor.heading = Math.atan2(-(target[0] - actor.position[0]), -(target[2] - actor.position[2]));
+        const step = Math.min(length, remaining);
+        actor.position = actor.position.map((value, index) => value + (target[index] - value) * step / length); remaining -= step;
+        if (step >= length - .00001) actor.route.shift();
+        if (!actor.route.length) this.arrive(actor);
+      }
+      if (['listening', 'loitering'].includes(actor.reason) && !actor.route.length && this.time >= actor.returnAt) this.home(actor.id);
+    }
+    if (this.pair) {
+      const pair = this.pair, [a, b] = pair.ids.map(id => this.actors.get(id));
+      if (!a.route.length && !b.route.length) {
+        a.heading = Math.atan2(-(b.position[0] - a.position[0]), -(b.position[2] - a.position[2])); b.heading = a.heading + Math.PI;
+        if (!pair.metAt) pair.metAt = this.time;
+        if (this.time >= this.quietUntil) {
+          if (!pair.first) { pair.first = true; this.onAmbient(a.id, `${this.getName(b.id)} ơi, mình đang rảnh. Trao đổi một chút rồi về bàn nhé?`); }
+          if (!pair.second && this.time - pair.metAt > 3) { pair.second = true; this.onAmbient(b.id, 'Ừ, mình cũng chưa có task. Có việc mới thì mình quay lại bàn ngay nhé.'); }
+        }
+        if (this.time - pair.metAt > 9) this.cancelPair();
+      }
+    } else if (this.time >= this.nextSocial && this.time >= this.quietUntil) {
+      const order = ['creative', 'media', 'insight', 'account', 'strategy'];
+      const rotated = [...order.slice(this.round % 5), ...order.slice(0, this.round % 5)];
+      const free = rotated.filter(id => !this.actors.get(id).busy && this.atDesk(id));
+      if (free.length >= 2) {
+        const destinations = [['socialA', 'socialB'], ['teaA', 'teaB'], ['meetingA', 'meetingB']][this.round % 3];
+        this.pair = { ids: free.slice(0, 2), metAt: null };
+        this.pair.ids.forEach((id, index) => this.move(id, destinations[index], 'social'));
+        this.round++;
+      } else if (free.length === 1) { this.move(free[0], 'socialA', 'idle'); this.nextSocial = this.time + 18; } else this.nextSocial = this.time + 4;
+    }
+  }
+}

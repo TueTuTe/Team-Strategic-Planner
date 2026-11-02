@@ -3,8 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { team } from './planner.js';
 import { makeOfficeTextures } from './materials.js';
 import { buildJapaneseOffice, officeZones } from './office-layout.js';
+import { OfficeNavigation } from './office-navigation.js';
 
-export function createOffice(container, onSelect, { motion = true } = {}) {
+export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {} } = {}) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, .1, 100);
   camera.position.set(...officeZones.overview.offset);
@@ -66,13 +67,13 @@ export function createOffice(container, onSelect, { motion = true } = {}) {
     obj.position.set(x, y, z); obj.castShadow = true; parent.add(obj); return obj;
   }
   const { seats, animateNature } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
   const agents = [];
   const labels = document.createElement('div'); labels.className = 'scene-labels'; container.append(labels);
   const connectors = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   connectors.classList.add('label-connectors'); connectors.setAttribute('aria-hidden', 'true'); labels.append(connectors);
-  const bubble = document.createElement('aside'); bubble.className = 'character-bubble'; bubble.hidden = true; bubble.setAttribute('role', 'status'); bubble.setAttribute('aria-live', 'polite');
-  const speaker = document.createElement('strong'), speech = document.createElement('p'); bubble.append(speaker, speech); container.append(bubble);
-  let bubbleTimer, speakingId, lastRender = 0;
+  const bubbles = new Map();
+  let lastRender = 0, lastTime = performance.now();
   team.forEach((person, i) => {
     const { x, z, rotation } = seats[person.id], base = 0, g = new THREE.Group(); scene.add(g); g.position.set(x, base, z);
     g.rotation.y = rotation;
@@ -83,12 +84,15 @@ export function createOffice(container, onSelect, { motion = true } = {}) {
     hair.scale.set(1, .6, 1);
     if (i === 0 || i === 1 || i === 3) box(.35, .3, .14, '#42352c', 0, -.06, .13, head);
     for (const x of [-.067, .067]) sphere(.016, '#40352d', x, .005, -.186, head);
-    const arms = [];
+    const arms = [], legs = [], sittingLegs = new THREE.Group(); g.add(sittingLegs);
     for (const dx of [-.25, .25]) {
       const pivot = new THREE.Group(); pivot.position.set(dx, 1.1, 0); g.add(pivot); arms.push(pivot);
       const arm = box(.12, .36, .13, person.color, 0, -.09, -.1, pivot); arm.rotation.x = -.7;
       sphere(.07, '#e5b792', 0, -.19, -.24, pivot);
-      box(.14, .35, .15, '#465951', dx * .5, .51, -.06, g);
+      box(.14, .35, .15, '#465951', dx * .5, .51, -.06, sittingLegs);
+      const leg = new THREE.Group(); leg.position.set(dx * .5, .7, 0); leg.visible = false; g.add(leg); legs.push(leg);
+      box(.145, .82, .16, '#465951', 0, -.41, 0, leg);
+      box(.16, .11, .25, '#363d34', 0, -.84, -.06, leg);
     }
     const ring = new THREE.Mesh(new THREE.RingGeometry(.42, .47, 48), new THREE.MeshBasicMaterial({ color: '#436a53', side: THREE.DoubleSide }));
     ring.rotation.x = -Math.PI / 2; ring.position.set(x, base + .09, z); ring.visible = false; scene.add(ring);
@@ -98,7 +102,7 @@ export function createOffice(container, onSelect, { motion = true } = {}) {
     label.append(dot, document.createTextNode(person.name), role);
     label.addEventListener('click', () => onSelect(person.id)); labels.append(label);
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); connectors.append(line);
-    agents.push({ id: person.id, g, head, arms, working: false, reactionUntil: 0, label, line, ring, anchor: new THREE.Vector3(x, base + 1.95, z) });
+    agents.push({ id: person.id, g, head, arms, legs, sittingLegs, working: false, reactionUntil: 0, label, line, ring, anchor: new THREE.Vector3(x, base + 1.95, z) });
   });
   let frame, needsRender = true;
   document.fonts.ready.then(() => { needsRender = true; });
@@ -116,16 +120,26 @@ export function createOffice(container, onSelect, { motion = true } = {}) {
     if (!changed && !needsRender && !motion) return;
     lastRender = now;
     const time = now / 1000;
-    if (motion) animateNature?.(time);
+    const delta = Math.min((now - lastTime) / 1000, .12); lastTime = now;
+    if (motion) { navigation.step(delta); animateNature?.(time); }
     agents.forEach((a, index) => {
       const phase = time + index * 1.7;
-      a.g.position.y = motion ? Math.sin(phase * 1.6) * .008 : 0;
+      const state = navigation.actors.get(a.id), walking = state.pose === 'walking', standing = state.pose !== 'seated';
+      const [x, y, z] = state.position;
+      a.g.position.set(x, y + (standing ? .22 : 0) + (motion ? walking ? Math.abs(Math.sin(phase * 9)) * .035 : Math.sin(phase * 1.6) * .008 : 0), z);
+      const turn = Math.atan2(Math.sin(state.heading - a.g.rotation.y), Math.cos(state.heading - a.g.rotation.y));
+      a.g.rotation.y += motion ? turn * Math.min(1, delta * 10) : turn;
+      a.sittingLegs.visible = !standing;
+      a.legs.forEach((leg, side) => { leg.visible = standing; leg.rotation.x = motion && walking ? Math.sin(phase * 9 + side * Math.PI) * .55 : 0; });
+      a.anchor.set(x, a.g.position.y + 1.95, z); a.ring.position.set(x, y + .09, z);
+      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : standing ? 'social' : 'desk';
+      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
       const reacting = a.reactionUntil > now;
       a.head.rotation.y = motion ? Math.sin(phase * .65) * .09 : 0;
       a.head.rotation.x = motion ? a.working ? .08 + Math.sin(phase * 3) * .035 : reacting ? Math.sin(phase * 5) * .09 : 0 : 0;
       a.head.rotation.z = motion ? Math.sin(phase * .8) * .025 : 0;
       a.arms.forEach((arm, side) => {
-        arm.rotation.x = motion && a.working ? Math.sin(phase * 9 + side * 2) * .14 : 0;
+        arm.rotation.x = motion && walking ? Math.sin(phase * 9 + side * Math.PI) * .45 : motion && a.working ? Math.sin(phase * 9 + side * 2) * .14 : 0;
         arm.rotation.z = motion && reacting && side === 1 ? -1.9 + Math.sin(phase * 8) * .15 : 0;
       });
     });
@@ -133,15 +147,23 @@ export function createOffice(container, onSelect, { motion = true } = {}) {
     renderer.render(scene, camera);
     const { width, height } = container.getBoundingClientRect();
     connectors.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    if (speakingId) {
-      const actor = agents.find(a => a.id === speakingId);
+    const bubbleRects = [];
+    for (const [id, record] of bubbles) {
+      const actor = agents.find(a => a.id === id), bubble = record.element;
       const point = actor.anchor.clone(); point.y += .45; point.project(camera);
       bubble.hidden = point.z > 1 || Math.abs(point.x) > 1 || Math.abs(point.y) > 1;
-      const x = (point.x + 1) / 2 * width;
-      const y = (-point.y + 1) / 2 * height;
+      if (bubble.hidden) { record.line.style.display = 'none'; continue; }
+      const x = (point.x + 1) / 2 * width, y = (-point.y + 1) / 2 * height;
       const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
-      bubble.style.left = `${Math.max(8, Math.min(width - bw - 8, x - bw / 2))}px`;
-      bubble.style.top = `${Math.max(12, Math.min(height - bh - 42, y - bh - 14))}px`;
+      const left = Math.max(8, Math.min(width - bw - 8, x - bw / 2));
+      let top = Math.max(12, Math.min(height - bh - 42, y - bh - 14));
+      for (const rect of bubbleRects) if (left < rect.right && left + bw > rect.left && top < rect.bottom && top + bh > rect.top) top = Math.max(12, rect.top - bh - 8);
+      bubble.style.left = `${left}px`; bubble.style.top = `${top}px`;
+      const face = actor.g.position.clone(); face.y += 1.5; face.project(camera);
+      record.line.setAttribute('x1', left + bw / 2); record.line.setAttribute('y1', top + bh);
+      record.line.setAttribute('x2', (face.x + 1) / 2 * width); record.line.setAttribute('y2', (-face.y + 1) / 2 * height);
+      record.line.style.display = '';
+      bubbleRects.push({ left, right: left + bw, top, bottom: top + bh });
     }
     const projected = agents.map(({ anchor, label, line }) => {
       const v = anchor.clone().project(camera);
@@ -180,19 +202,29 @@ export function createOffice(container, onSelect, { motion = true } = {}) {
   }
   return {
     focusZone,
-    setMotion(enabled) { motion = enabled; needsRender = true; },
+    setMotion(enabled) { motion = enabled; if (!motion) navigation.freezeAtDesks(); lastTime = performance.now(); needsRender = true; },
+    isAtDesk(id) { return navigation.atDesk(id); },
+    returnToDesk(id, callback) { navigation.home(id, callback); if (!motion) navigation.freezeAtDesks(); needsRender = true; },
+    setBusy(id, value) { const changed = navigation.actors.get(id)?.busy !== value; navigation.setBusy(id, value); if (!motion && value && changed) navigation.freezeAtDesks(); needsRender = true; },
+    callAgent(id) { navigation.call(id); if (!motion) { const actor = navigation.actors.get(id); actor.position = [...actor.route.at(-1) || actor.position]; actor.route = []; navigation.arrive(actor); } needsRender = true; },
     setWorking(id, value) { const actor = agents.find(a => a.id === id); if (actor) actor.working = value; needsRender = true; },
     say(id, text, tone = 'greet') {
       const person = team.find(p => p.id === id), actor = agents.find(a => a.id === id); if (!person || !actor) return;
-      clearTimeout(bubbleTimer); speakingId = id; bubble.hidden = false;
-      speaker.textContent = person.name; speech.textContent = text; bubble.dataset.tone = tone;
-      actor.reactionUntil = performance.now() + 2000; needsRender = true;
-      bubbleTimer = setTimeout(() => { speakingId = null; bubble.hidden = true; needsRender = true; }, 7500);
+      const previous = bubbles.get(id); if (previous) { clearTimeout(previous.timer); previous.element.remove(); previous.line.remove(); }
+      const bubble = document.createElement('aside'); bubble.className = 'character-bubble'; bubble.dataset.speaker = id; bubble.dataset.tone = tone;
+      bubble.setAttribute('role', 'status'); bubble.setAttribute('aria-live', 'polite');
+      const speaker = document.createElement('strong'), speech = document.createElement('p'); speaker.textContent = person.name; speech.textContent = text;
+      bubble.append(speaker, speech); container.append(bubble);
+      actor.reactionUntil = performance.now() + 2000;
+      if (!['ambient', 'welcome'].includes(tone)) navigation.quietFor(12);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); line.classList.add('speech-connector'); connectors.append(line);
+      const timer = setTimeout(() => { bubble.remove(); line.remove(); bubbles.delete(id); needsRender = true; }, 8500);
+      bubbles.set(id, { element: bubble, line, timer }); needsRender = true;
     },
     select(id) { agents.forEach(a => { a.ring.visible = a.id === id; a.label.classList.toggle('selected', a.id === id); }); needsRender = true; },
     zoom(delta) { const offset = camera.position.clone().sub(controls.target); offset.multiplyScalar(delta); if (offset.length() >= controls.minDistance && offset.length() <= controls.maxDistance) camera.position.copy(controls.target).add(offset); needsRender = true; },
     reset() { focusZone('overview'); },
     top() { camera.position.copy(controls.target).add(new THREE.Vector3(0, 32, 11)); controls.update(); needsRender = true; },
-    dispose() { clearTimeout(bubbleTimer); bubble.remove(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(obj => { obj.geometry?.dispose(); obj.material?.dispose(); }); Object.values(textures).forEach(texture => texture.dispose()); sunlight.shadow.dispose(); renderer.dispose(); labels.remove(); renderer.domElement.remove(); },
+    dispose() { for (const record of bubbles.values()) { clearTimeout(record.timer); record.element.remove(); } bubbles.clear(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(obj => { obj.geometry?.dispose(); obj.material?.dispose(); }); Object.values(textures).forEach(texture => texture.dispose()); sunlight.shadow.dispose(); renderer.dispose(); labels.remove(); renderer.domElement.remove(); },
   };
 }

@@ -26,11 +26,30 @@ Góc Strategy có thêm tủ gỗ thấp trưng bày bể cá thủy sinh và te
 ## Chuyển động, lời thoại và giao việc
 
 - Nhân vật có chuyển động đầu, vẫy tay khi tương tác và gõ phím khi đang làm thử. Nút **Chuyển động** bật/tắt toàn cảnh; mặc định tôn trọng tùy chọn giảm chuyển động của hệ điều hành.
+- Khi không còn task đang mở, nhân viên tự rời ghế, đi theo các lối trống và gặp nhau trò chuyện ở lối đi, khu trà hoặc phòng họp. Nhận việc mới sẽ quay về bàn. Nếu đang ở xa khi bấm làm thử, trạng thái **Đang về bàn** được giữ đến khi tới nơi rồi mới bắt đầu thời gian xử lý mô phỏng. Tắt chuyển động đưa nhân viên về chỗ và không tự đi dạo.
 - Chọn nhân vật để **Chào hỏi**, **Động viên**, **Nhắc nghiêm** vui vẻ, hoặc **Giao việc**. Bong bóng thoại xuất hiện tại nhân vật; nhật ký bên dưới giữ các phản hồi gần đây.
 - **Bàn điều phối** lưu đầu việc và lịch sử trên trình duyệt. **Làm thử · mô phỏng** chạy khoảng 5,5 giây rồi tạo checklist theo chuyên môn và báo xong. Nút **Xem bản nháp** mở nội dung thật đã sinh; đây là mẫu cố định theo vai trò, chưa có agent AI nghiên cứu hoặc xử lý nội dung thật.
 - Có thể **Dừng**, **Đánh dấu xong** thủ công hoặc xóa việc. Hủy một lượt làm thử ngăn thông báo hoàn thành sau đó. Đầu việc đang làm được khôi phục khi tải lại trang.
 - Nhạc ambient ngũ cung do Web Audio tổng hợp cục bộ, không tải nhạc từ bên ngoài. Trình duyệt cần lần chạm/bấm phím đầu tiên để cho phép phát. Menu **♫** có nút bật/tắt, âm lượng và lựa chọn đọc lời thoại; ghi nhớ tắt nhạc khi tải lại. Nhạc tạm dừng khi tab ẩn.
 - Giọng đọc dùng Speech Synthesis nếu thiết bị có giọng tiếng Việt; mặc định tắt. Khi không có giọng đọc, lời thoại văn bản vẫn hoạt động. Việc nghe được âm thanh thực tế phụ thuộc thiết bị/đầu ra âm thanh; kiểm thử tự động xác nhận AudioContext phát và trạng thái điều khiển.
+
+## Box chat với nhân viên
+
+Nút **Nhắn đội ngũ** mở hộp chat nhỏ ở góc phải. Chọn người nhận hoặc viết tên; phản hồi xuất hiện từ chính nhân vật trong cảnh 3D và được giữ trong lịch sử chat của trình duyệt.
+
+- `Vũ ơi, lại đây`: nhân viên đang rảnh đi ra lối giữa văn phòng rồi báo đã tới. Người đang làm việc sẽ báo tình trạng thay vì tự bỏ task.
+- `Lãm ơi, tiến độ đến đâu rồi?`: báo task đang chờ, đang về bàn, đang làm thử, đã xong hoặc đã dừng. Phần trăm chỉ là thời gian của lượt mô phỏng.
+- `Báo cáo tiến độ cả đội`: từng người trả lời tình trạng riêng.
+- Chọn người rồi nhắn `Giao việc: Rà creative brief`, `Bắt đầu làm thử` hoặc `Dừng việc` để thao tác bảng việc từ chat.
+- Tên gọi mơ hồ như `Ân ơi` sẽ được hỏi lại để phân biệt Kim Chủ Ân và Trịnh Dĩ An. Khung nhận diện dựa vào tên hiện tại nên vẫn dùng được sau khi đổi tên.
+
+Chat hiện dùng bộ nhận diện ý định và trạng thái task cục bộ, chưa nối mô hình AI hội thoại. Không bịa ra nghiên cứu hay kết quả công việc thật.
+
+## Pretty Please qua YouTube
+
+Trình phát nhúng dùng đúng [video người dùng cung cấp](https://www.youtube.com/watch?v=ufwB9Uja_wM), không tải hoặc đóng gói bản thu. Sau lần tương tác đầu tiên, trình phát xuất hiện trong vùng nhạc riêng trên trang; có thể cần bấm nút Play của YouTube theo chính sách trình duyệt. Nút **Mở trên YouTube** là đường dẫn dự phòng nếu video không cho nhúng hoặc không phát được trên thiết bị.
+
+Chuyển sang YouTube sẽ dừng ambient; chuyển về ambient hoặc nhấn **Dừng & thu gọn** sẽ gỡ iframe. Phát video cần Internet; bản HTML ngoại tuyến vẫn dùng được văn phòng, chat, task và nhạc ambient. Kiểm thử xác nhận URL video và các thao tác chuyển nguồn với iframe giả lập, không xác nhận bản thu thực tế phát được ở mọi khu vực/thiết bị.
 
 ## Chạy ứng dụng
 

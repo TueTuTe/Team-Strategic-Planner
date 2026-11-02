@@ -1,11 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ contentType: 'text/html', body: '<p>YouTube player fixture</p>' }));
+});
+
 test('gives a character work, reacts playfully and restores a completed demo with an actual draft', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await page.locator('.agent-label').filter({ hasText: 'Thôi Chí Vũ' }).click();
   await page.getByRole('button', { name: 'Nhắc nghiêm' }).click();
-  await expect(page.locator('.character-bubble')).toContainText('Bớt ngắm cá');
+  await expect(page.locator('.character-bubble[data-speaker="strategy"]')).toContainText('Bớt ngắm cá');
   await expect(page.locator('#life-log')).toContainText('Thôi Chí Vũ');
   await page.locator('.team-card[data-agent="strategy"]').click();
   await page.locator('#give-task').click();
@@ -33,6 +37,7 @@ test('starts music after interaction, supports volume and persists mute', async 
   await page.goto('/');
   await expect(page.locator('#sound-controls')).toHaveAttribute('data-state', 'locked');
   await page.getByLabel('Điều khiển âm thanh').click();
+  await page.getByRole('button', { name: 'Dùng nhạc ambient', exact: true }).click();
   await expect(page.locator('#sound-controls')).toHaveAttribute('data-state', 'playing');
   await page.getByLabel('Âm lượng nhạc').focus();
   await page.getByLabel('Âm lượng nhạc').press('Home');

@@ -13,6 +13,8 @@ import { team, createPlan, renameMember, getPhaseOwner } from './planner.js';
 import { OfficeLife } from './office-life.js';
 import { OfficeAudio } from './office-audio.js';
 import { mountLifePanel } from './life-panel.js';
+import { mountOfficeChat } from './office-chat-widget.js';
+import { mountOfficialMusic } from './official-music.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -33,6 +35,7 @@ let projects = Array.isArray(saved.projects) ? saved.projects.filter(p => p && t
 let checkedTasks = Array.isArray(saved.checkedTasks) ? saved.checkedTasks : [];
 let activeView = 'office', office, lastFocus, selectedAgent;
 let lifePanelDispose;
+let officialMusic;
 const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
 let motionEnabled = !motionPreference.matches;
 try { const preference = localStorage.getItem('atelier-motion'); if (preference !== null) motionEnabled = preference === 'true'; } catch { /* Use system preference. */ }
@@ -64,14 +67,14 @@ $('#app').innerHTML = `
   </aside>
   <div class="main-shell">
     <header class="topbar"><div class="breadcrumb">Workspace ${icon('chevron-right')}<span id="crumb">Văn phòng 3D</span></div><div class="topbar-right"><details id="sound-controls" class="sound-controls"><summary aria-label="Điều khiển âm thanh"><span aria-hidden="true">♫</span><span id="sound-summary">Chạm để nghe</span></summary><div class="sound-popover"><div class="eyebrow">SOUNDS OF ATELIER</div><strong>Japanese ambient</strong><p>Giai điệu nhẹ tạo riêng cho văn phòng.</p><button class="button secondary full" id="audio-toggle">Phát nhạc</button><label for="music-volume">Âm lượng nhạc</label><input id="music-volume" type="range" min="0" max="60" step="1" value="20"><label class="voice-control"><input id="voice-toggle" type="checkbox"> Đọc lời thoại tiếng Việt</label><small>Giọng đọc tùy trình duyệt. Nhạc bắt đầu sau lần chạm đầu tiên.</small><span id="audio-status" role="status"></span></div></details><span class="local-status"><span></span> Lưu cục bộ</span><button class="icon-button" id="help" aria-label="Hướng dẫn">${icon('circle-help')}</button><span class="mini-avatar">KT</span></div></header>
-    <main id="main"></main>
+    <section id="official-player-strip" class="official-player-strip" aria-label="Nhạc văn phòng" hidden></section><main id="main"></main>
     <footer class="app-footer"><span><span class="live-dot"></span> Không gian cho những ý tưởng lớn</span><span>Made for curious minds. <span class="footer-flower">✳</span></span></footer>
   </div>
-  <div id="modal-root"></div><div id="toast" role="status" aria-live="polite"></div><div id="office-announcement" class="sr-only" role="status" aria-live="polite"></div>`;
+  <div id="office-chat-root"></div><div id="modal-root"></div><div id="toast" role="status" aria-live="polite"></div><div id="office-announcement" class="sr-only" role="status" aria-live="polite"></div>`;
 
 function updateAudioUI(state) {
   if (!$('#sound-summary')) return;
-  const labels = { locked: 'Chạm để nghe', playing: 'Nhạc đang phát', muted: 'Nhạc đang tắt', paused: 'Nhạc tạm dừng', unsupported: 'Không hỗ trợ âm thanh' };
+  const labels = { locked: 'Chạm để nghe', playing: 'Nhạc đang phát', muted: 'Nhạc đang tắt', paused: 'Nhạc tạm dừng', external: 'Trình phát YouTube', unsupported: 'Không hỗ trợ âm thanh' };
   $('#sound-summary').textContent = labels[state.state];
   $('#audio-status').textContent = labels[state.state];
   $('#audio-toggle').textContent = state.state === 'playing' ? 'Tắt nhạc' : 'Phát nhạc';
@@ -79,13 +82,16 @@ function updateAudioUI(state) {
   $('#music-volume').value = Math.round(state.volume * 100);
   $('#voice-toggle').checked = state.voice;
   $('#sound-controls').dataset.state = state.state;
+  officialMusic?.render(state);
 }
 function updatePresence() {
   for (const person of team) {
-    const working = life.isWorking(person.id);
+    const working = life.tasks.some(task => task.memberId === person.id && task.status === 'working');
+    const returning = life.tasks.some(task => task.memberId === person.id && task.status === 'returning');
+    office?.setBusy(person.id, life.hasOpenWork(person.id));
     office?.setWorking(person.id, working);
     const card = document.querySelector(`.team-card[data-agent="${person.id}"] .team-card-bottom`);
-    if (card) card.innerHTML = `<span class="ready-dot"></span>${working ? 'Đang làm thử…' : 'Sẵn sàng nhận việc'} ${icon('arrow-up-right')}`;
+    if (card) card.innerHTML = `<span class="ready-dot"></span>${working ? 'Đang làm thử…' : returning ? 'Đang về bàn…' : life.hasOpenWork(person.id) ? 'Có việc đang chờ' : 'Đang rảnh'} ${icon('arrow-up-right')}`;
   }
   hydrate();
 }
@@ -96,6 +102,26 @@ function handleLifeEvent(event) {
   $('#office-announcement').textContent = `${person.name}: ${event.text}`;
   if (event.tone === 'completed') { audio.chime(); if (activeView !== 'office' || $('#modal-root').children.length) toast(`${person.name}: ${event.text}`); }
   updatePresence();
+}
+function runOfficeTask(id) {
+  const task = life.get(id);
+  if (office && !office.isAtDesk(task.memberId)) {
+    life.run(id, { waitForDesk: true });
+    office.returnToDesk(task.memberId, () => { if (life.tasks.some(t => t.id === id && t.status === 'returning')) life.begin(id); });
+  } else life.run(id);
+}
+function sendOfficeMessage(recipient, text) {
+  if ($('#modal-root').children.length) closeModal();
+  if (activeView !== 'office') { history.replaceState(null, '', '#office'); navigate('office'); }
+  office?.reset();
+  document.querySelectorAll('[data-zone]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.zone === 'overview')));
+  if ($('#zone-detail')) $('#zone-detail').textContent = officeZones.overview.detail;
+  const actions = life.message(recipient, text);
+  for (const action of actions) {
+    if (action.type === 'call') office?.callAgent(action.memberId);
+    if (action.type === 'start') runOfficeTask(action.taskId);
+  }
+  return life.lastChatTarget;
 }
 function openTaskResult(task) {
   modal(`<div class="eyebrow">BẢN NHÁP MÔ PHỎNG · ${esc(life.member(task.memberId).role)}</div><h2>${esc(task.title)}</h2><p class="modal-intro">${esc(life.member(task.memberId).name)} đã tạo khung tham khảo theo mẫu. Chưa có AI nghiên cứu hoặc thực hiện đầu việc thật.</p><ol class="framework-list">${task.result.map(line => `<li>${esc(line)}</li>`).join('')}</ol><p class="fine-print">Dùng nội dung này làm checklist để phát triển đầu việc “${esc(task.title)}”. Cần bổ sung dữ liệu, nội dung chi tiết và người duyệt trước khi trình khách hàng.</p>`);
@@ -122,8 +148,8 @@ function renderOffice() {
       <section class="inspiration"><span>${icon('lightbulb')}</span><div><h3>Good strategy starts with why.</h3><p>Đừng vội tìm ý tưởng. Hãy bắt đầu từ câu hỏi đúng.</p></div>${icon('sparkle')}</section></aside></div>
     <section class="team-section"><div class="section-heading"><div><h2>Những bộ óc phía sau ý tưởng <span class="number-tag">05</span></h2><p>Mỗi vai trò một thế mạnh. Cùng nhau tạo nên bức tranh lớn.</p></div><button class="text-link" id="all-team">Khám phá đội ngũ ${icon('arrow-right')}</button></div><div class="team-cards">${team.map(p => `<button class="team-card" data-agent="${p.id}"><div class="team-card-top">${avatar(p)}<span class="role-symbol">${icon({strategy:'compass',insight:'scan-search',creative:'pen-tool',media:'chart-no-axes-combined',account:'briefcase-business'}[p.id])}</span></div><h3>${esc(p.name)}</h3><p>${p.role}</p><div class="team-card-bottom"><span class="ready-dot"></span>Sẵn sàng nhận brief ${icon('arrow-up-right')}</div></button>`).join('')}</div></section>
     <section class="bottom-banner"><div class="banner-mark">${icon('workflow')}</div><div><h3>Từ một câu hỏi đến một chiến dịch.</h3><p>Brief → Insight → Strategy → Big Idea → IMC Plan</p></div><button class="text-link" data-action="brief">Bắt đầu hành trình ${icon('arrow-right')}</button></section>`;
-  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
-  lifePanelDispose = mountLifePanel($('#office-life'), life, { onResult: openTaskResult, onNotice: toast, onFocus: id => office?.select(id) });
+  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled, onAmbient: (id, text) => life.emit(id, text, 'ambient'), onCallArrival: id => life.emit(id, 'Em đã tới lối đi giữa văn phòng rồi sếp. Sếp cần trao đổi gì ạ?', 'arrived') }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
+  lifePanelDispose = mountLifePanel($('#office-life'), life, { onResult: openTaskResult, onNotice: toast, onFocus: id => office?.select(id), onRun: runOfficeTask });
   $('#motion-toggle').onclick = () => {
     motionEnabled = !motionEnabled; office?.setMotion(motionEnabled);
     try { localStorage.setItem('atelier-motion', String(motionEnabled)); } catch { /* Session preference still works. */ }
@@ -165,6 +191,7 @@ function navigate(view) {
   ({ office: renderOffice, projects: renderProjects, team: renderTeam, library: renderLibrary })[view]();
   $('.project-count').textContent = projects.length;
   bindView(); hydrate();
+  for (const task of [...life.tasks]) if (task.status === 'returning') life.begin(task.id);
 }
 function bindView() {
   document.querySelectorAll('[data-action="brief"]').forEach(el => el.onclick = openBrief);
@@ -208,7 +235,7 @@ function openAgent(id) {
     e.preventDefault();
     try {
       renameMember(p.id, $('#character-name').value);
-      persist();
+      persist(); officeChat.refresh();
       navigate(activeView);
       lastFocus = document.querySelector(`[data-agent="${p.id}"]`) || document.querySelector('[data-view="team"]');
       openAgent(p.id);
@@ -253,21 +280,27 @@ document.querySelectorAll('[data-view]').forEach(el => el.onclick = () => { loca
 window.addEventListener('hashchange', () => navigate(location.hash.slice(1)));
 $('#settings').onclick = () => modal(`<div class="eyebrow">WORKSPACE SETTINGS</div><h2>Không gian riêng của bạn.</h2><p class="modal-intro">Atelier hiện là bản trải nghiệm chạy trên trình duyệt.</p><div class="settings-row"><strong>Lưu trữ</strong><span>Cục bộ · ${projects.length} dự án</span></div><div class="settings-row"><strong>AI</strong><span>Chưa kết nối</span></div><div class="settings-row"><strong>Cộng tác nhiều người</strong><span>Chưa hỗ trợ</span></div><p class="fine-print">Không nhập dữ liệu mật của khách hàng vào bản demo. Để dùng thực tế cần bổ sung đăng nhập, cơ sở dữ liệu và kết nối AI qua backend.</p>`);
 $('#workspace-info').onclick = () => toast('Khải Tuệ Studio · Workspace cá nhân trên trình duyệt này.');
-$('#help').onclick = () => modal(`<div class="eyebrow">WELCOME TO ATELIER</div><h2>Gặp nhau ở nơi ý tưởng bắt đầu.</h2><ol class="framework-list"><li>Kéo trong văn phòng để xoay góc nhìn; dùng + / − để phóng hoặc thu.</li><li>Chọn tên nhân vật để chào hỏi, động viên, nhắc nghiêm hoặc giao việc.</li><li>Bàn điều phối có lượt làm thử theo mẫu, thông báo hoàn thành và nút xem bản nháp. Nhân vật chưa kết nối AI thật.</li><li>Nhạc bắt đầu sau lần chạm đầu tiên. Mở menu ♫ để tắt nhạc, chỉnh âm lượng hoặc bật đọc lời thoại. Nút Chuyển động giúp bật/tắt cử động.</li><li>Tạo brief với khách hàng, mục tiêu, đối tượng và ngân sách dự kiến.</li><li>Xem khung IMC gồm 5 giai đoạn, theo dõi đầu việc và xuất Markdown.</li></ol><p class="fine-print">Bản trải nghiệm sử dụng vai trò mô phỏng và khung kế hoạch theo mẫu. Không có agent AI hoặc dữ liệu nghiên cứu trực tiếp.</p>`);
+$('#help').onclick = () => modal(`<div class="eyebrow">WELCOME TO ATELIER</div><h2>Gặp nhau ở nơi ý tưởng bắt đầu.</h2><ol class="framework-list"><li>Kéo trong văn phòng để xoay góc nhìn; dùng + / − để phóng hoặc thu.</li><li>Nhân viên rảnh sẽ rời ghế và trò chuyện; có việc mới thì quay về bàn. Nút Nhắn đội ngũ mở chat nhỏ để gọi người, hỏi tiến độ hoặc nhắn “Giao việc: …”.</li><li>Chọn tên nhân vật để chào hỏi, động viên, nhắc nghiêm hoặc giao việc.</li><li>Bàn điều phối có lượt làm thử theo mẫu, thông báo hoàn thành và nút xem bản nháp. Nhân vật chưa kết nối AI thật.</li><li>Mở menu ♫ để chọn Pretty Please qua YouTube hoặc nhạc ambient. Có thể cần bấm Play trong video; giọng đọc là tùy chọn. Nút Chuyển động giúp bật/tắt cử động.</li><li>Tạo brief với khách hàng, mục tiêu, đối tượng và ngân sách dự kiến.</li><li>Xem khung IMC gồm 5 giai đoạn, theo dõi đầu việc và xuất Markdown.</li></ol><p class="fine-print">Bản trải nghiệm sử dụng vai trò mô phỏng và khung kế hoạch theo mẫu. Không có agent AI hoặc dữ liệu nghiên cứu trực tiếp.</p>`);
+const officeChat = mountOfficeChat($('#office-chat-root'), life, { onSend: sendOfficeMessage, onNotice: toast });
+life.subscribe(() => {
+  updatePresence(); officeChat.refresh();
+  for (const task of [...life.tasks]) if (task.status === 'returning' && (!office || office.isAtDesk(task.memberId))) life.begin(task.id);
+});
+officialMusic = mountOfficialMusic($('.sound-popover'), audio, updateAudioUI);
 updateAudioUI(audio.snapshot());
-$('#audio-toggle').onclick = () => void audio.toggle();
+$('#audio-toggle').onclick = () => officialMusic.toggleAmbient();
 $('#music-volume').oninput = event => audio.setVolume(Number(event.target.value) / 100);
 $('#voice-toggle').onchange = event => audio.setVoice(event.target.checked);
 function unlockSound(event) {
   if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
-  document.removeEventListener('pointerdown', unlockSound); document.removeEventListener('keydown', unlockSound);
-  if (!event.target.closest('#audio-toggle')) void audio.unlock();
+  document.removeEventListener('click', unlockSound); document.removeEventListener('keydown', unlockSound);
+  if (!event.target.closest('#audio-toggle,#youtube-play,#youtube-stop')) officialMusic.activate();
 }
-document.addEventListener('pointerdown', unlockSound);
+document.addEventListener('click', unlockSound);
 document.addEventListener('keydown', unlockSound);
 setInterval(() => life.tick(), 500);
 motionPreference.addEventListener('change', event => {
   if (event.matches) { motionEnabled = false; office?.setMotion(false); const button = $('#motion-toggle'); if (button) { button.setAttribute('aria-pressed', 'false'); button.textContent = 'Chuyển động: tắt'; } }
 });
 navigate(location.hash.slice(1) || 'office');
-setTimeout(() => { if (!life.log.length) office?.say('strategy', 'Chào sếp! Văn phòng đã có nhịp sống mới. Chọn một người để trò chuyện hoặc giao việc nhé.'); }, 900);
+setTimeout(() => { if (!life.log.length) office?.say('strategy', 'Chào sếp! Văn phòng đã có nhịp sống mới. Chọn một người để trò chuyện hoặc giao việc nhé.', 'welcome'); }, 900);

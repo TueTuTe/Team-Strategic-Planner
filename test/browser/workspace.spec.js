@@ -1,9 +1,14 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ contentType: 'text/html', body: '<p>YouTube player fixture</p>' }));
+});
+
 test('renders interactive 3D office and opens role profiles', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => {
+    if (window.top !== window) return;
     localStorage.setItem('atelier-workspace-v1', JSON.stringify({ teamNames: { strategy: 'Minh Anh', insight: 'Linh', creative: 'Bảo', media: 'Hà', account: 'Tuấn' } }));
   });
   await page.goto('/');

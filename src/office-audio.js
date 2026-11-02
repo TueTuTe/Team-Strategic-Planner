@@ -6,13 +6,13 @@ export class OfficeAudio {
     this.enabled = saved?.enabled !== false; this.volume = Number.isFinite(saved?.volume) ? clamp(saved.volume, 0, .6) : .2;
     this.voice = saved?.voice === true; this.onChange = onChange; this.onNotice = onNotice;
     this.nodes = new Set(); this.unlocked = false; this.step = 0; this.state = this.enabled ? 'locked' : 'muted';
-    this.visibility = () => { if (document.hidden) { this.stopSchedule(); this.ctx?.suspend().catch(() => {}); window.speechSynthesis?.cancel(); this.update(); } else if (this.unlocked && this.enabled) void this.play(); };
+    this.visibility = () => { if (document.hidden) { this.stopSchedule(); this.ctx?.suspend().catch(() => {}); window.speechSynthesis?.cancel(); this.update(); } else if (this.unlocked && this.enabled && !this.external) void this.play(); };
     document.addEventListener('visibilitychange', this.visibility);
   }
   snapshot() { return { enabled: this.enabled, volume: this.volume, voice: this.voice, state: this.state }; }
   persist() { try { localStorage.setItem('atelier-audio-v1', JSON.stringify({ enabled: this.enabled, volume: this.volume, voice: this.voice })); } catch { /* Preferences remain usable in this session. */ } }
   update() {
-    if (this.state !== 'unsupported') this.state = !this.enabled ? 'muted' : this.ctx?.state === 'running' ? 'playing' : this.unlocked ? 'paused' : 'locked';
+    if (this.state !== 'unsupported') this.state = !this.enabled ? 'muted' : this.external ? 'external' : this.ctx?.state === 'running' ? 'playing' : this.unlocked ? 'paused' : 'locked';
     this.onChange(this.snapshot());
   }
   async unlock() { this.unlocked = true; if (this.enabled) await this.play(); else this.update(); }
@@ -21,6 +21,7 @@ export class OfficeAudio {
     this.playPromise = this.start().finally(() => { this.playPromise = null; }); return this.playPromise;
   }
   async start() {
+    if (this.external) { this.update(); return; }
     try {
       const Context = window.AudioContext || window.webkitAudioContext;
       if (!Context) { this.state = 'unsupported'; this.onChange(this.snapshot()); return; }
@@ -29,6 +30,7 @@ export class OfficeAudio {
         this.ctx.addEventListener('statechange', () => this.update());
       }
       await this.ctx.resume();
+      if (this.external) { await this.ctx.suspend(); this.update(); return; }
       if (!this.enabled || document.hidden) { await this.ctx.suspend(); this.update(); return; }
       this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, .25);
       if (!this.timer) { this.nextNote = this.ctx.currentTime + .08; this.schedule(); this.timer = setInterval(() => this.schedule(), 250); }
@@ -59,11 +61,14 @@ export class OfficeAudio {
   }
   stopSchedule() { clearInterval(this.timer); this.timer = null; for (const node of this.nodes) { try { node.stop(); } catch { /* Already ended. */ } } this.nodes.clear(); }
   async toggle() {
+    if (this.external) { this.external = false; this.enabled = true; this.unlocked = true; this.persist(); await this.play(); return; }
     if (this.enabled && this.state !== 'playing') { this.unlocked = true; await this.play(); return; }
     this.unlocked = true; this.enabled = !this.enabled; this.persist();
     if (this.enabled) await this.play(); else { this.stopSchedule(); if (this.ctx) { this.master.gain.setTargetAtTime(0, this.ctx.currentTime, .03); await this.ctx.suspend(); } this.update(); }
   }
   setVolume(value) { this.volume = clamp(Number(value) || 0, 0, .6); if (this.ctx) this.master.gain.setTargetAtTime(this.enabled ? this.volume : 0, this.ctx.currentTime, .08); this.persist(); this.update(); }
+  useExternal() { this.external = true; this.unlocked = true; this.enabled = true; this.stopSchedule(); this.ctx?.suspend().catch(() => {}); this.persist(); this.update(); }
+  stopExternal() { this.enabled = false; this.stopSchedule(); this.ctx?.suspend().catch(() => {}); this.persist(); this.update(); }
   setVoice(enabled) {
     this.voice = enabled && 'speechSynthesis' in window;
     if (!this.voice) window.speechSynthesis?.cancel();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 export function buildNatureCorner({ scene, box, cylinder, sphere, mat }) {
+  const fishActors = [];
   // A shallow display cabinet stays to the left of the alcove's open entrance.
   box(3.2, .74, .88, 'walnut', -6.6, .43, -2.55);
   box(3.3, .08, .96, 'oak', -6.6, .84, -2.55);
@@ -40,6 +41,7 @@ export function buildNatureCorner({ scene, box, cylinder, sphere, mat }) {
     const tail = new THREE.Shape(); tail.moveTo(-.075, 0); tail.lineTo(-.16, .06); tail.lineTo(-.16, -.06); tail.closePath();
     const fin = new THREE.Mesh(new THREE.ShapeGeometry(tail), mat(color)); fin.material.side = THREE.DoubleSide; group.add(fin);
     sphere(.008, '#273e33', .065, .014, .025, group);
+    fishActors.push({ group, fin, y, z, phase: fishActors.length * 1.8 });
   }
   fish(-.36, .7, .17, '#dea35c', .25); fish(.07, .61, .22, '#e6b66c', -.15);
   fish(.39, .78, .1, '#c98851', Math.PI); fish(-.11, .44, .2, '#bad0bd', -.2);
@@ -64,4 +66,10 @@ export function buildNatureCorner({ scene, box, cylinder, sphere, mat }) {
   cylinder(.32, .4, 1.02, 'terrariumGlass', 0, .53, 0, terrarium);
   cylinder(.34, .34, .055, 'oak', 0, 1.065, 0, terrarium);
   cylinder(.29, .29, .013, '#b29b73', 0, 1.1, 0, terrarium);
+  return time => fishActors.forEach(({ group, fin, y, z, phase }) => {
+    const t = time * .45 + phase;
+    group.position.set(Math.sin(t) * .53, y + Math.sin(t * 1.8) * .045, z);
+    group.rotation.y = Math.cos(t) > 0 ? 0 : Math.PI;
+    fin.rotation.y = Math.sin(time * 8 + phase) * .35;
+  });
 }

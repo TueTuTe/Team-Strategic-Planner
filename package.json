@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:demo": "node scripts/build-demo.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test test/planner.test.js",
+    "test": "node --test test/*.test.js",
     "test:e2e": "playwright test"
   },
   "dependencies": {

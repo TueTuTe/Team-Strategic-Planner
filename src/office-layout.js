@@ -110,7 +110,7 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   table(-7.38, -5.4, .65, 2.45);
   // Sit behind the desk, facing the studio; screen backs face the open aisle.
   workstation('strategy', -5.65, -4.8, Math.PI); chair(-5.65, -5.95, Math.PI);
-  buildNatureCorner({ scene, box, cylinder, sphere, mat });
+  const animateNature = buildNatureCorner({ scene, box, cylinder, sphere, mat });
   // Only one lateral slatted screen; the 5m-wide front stays entirely open.
   for (let i = 0; i < 18; i++) box(.09, 2.45, .065, 'walnut', -2.83, 1.25, -6.45 + i * .17);
   box(.14, .1, 3.2, 'oak', -2.83, 2.51, -5.0);
@@ -209,5 +209,5 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
     const glow = new THREE.PointLight('#ffd398', 8, 7, 2); glow.position.set(x, 2.85, z); scene.add(glow);
   }
   const seats = { strategy: { x: -5.65, z: -5.95, rotation: Math.PI }, ...Object.fromEntries(studioSeats.map(seat => [seat.id, seat])) };
-  return { seats, monitorMeshes };
+  return { seats, monitorMeshes, animateNature };
 }

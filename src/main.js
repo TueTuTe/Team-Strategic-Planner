@@ -10,6 +10,9 @@ const icons = { ArrowRight, ArrowUpRight, BriefcaseBusiness, CalendarDays, Chart
 import { createOffice } from './office.js';
 import { officeZones } from './office-layout.js';
 import { team, createPlan, renameMember, getPhaseOwner } from './planner.js';
+import { OfficeLife } from './office-life.js';
+import { OfficeAudio } from './office-audio.js';
+import { mountLifePanel } from './life-panel.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -29,6 +32,13 @@ for (const person of team) {
 let projects = Array.isArray(saved.projects) ? saved.projects.filter(p => p && typeof p.id === 'string' && typeof p.client === 'string' && Array.isArray(p.phases) && p.phases.length === 5) : [];
 let checkedTasks = Array.isArray(saved.checkedTasks) ? saved.checkedTasks : [];
 let activeView = 'office', office, lastFocus, selectedAgent;
+let lifePanelDispose;
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+let motionEnabled = !motionPreference.matches;
+try { const preference = localStorage.getItem('atelier-motion'); if (preference !== null) motionEnabled = preference === 'true'; } catch { /* Use system preference. */ }
+let storage; try { storage = localStorage; } catch { storage = null; }
+const audio = new OfficeAudio({ onChange: updateAudioUI, onNotice: toast });
+const life = new OfficeLife({ members: team, storage, onEvent: handleLifeEvent, onStorageError: () => toast('Không lưu được đầu việc. Dữ liệu hiện chỉ giữ trong phiên này.') });
 const demo = { ...createPlan({ client: 'Mộc · Green living', objective: 'Xây dựng nhận biết cho dòng sản phẩm sống xanh mới', audience: 'Người trẻ thành thị 25–34 tuổi', budget: '500000000', timing: '8 tuần' }), demo: true };
 function persist() {
   try { localStorage.setItem(storageKey, JSON.stringify({ projects, checkedTasks, teamNamesVersion: 2, teamNames: Object.fromEntries(team.map(person => [person.id, person.name])) })); }
@@ -53,11 +63,49 @@ $('#app').innerHTML = `
     <div class="sidebar-bottom"><button class="nav-link" id="settings">${icon('sliders-horizontal')}<span>Cài đặt workspace</span></button><div class="user"><span class="user-avatar">KT</span><span><strong>Khải Tuệ</strong><small>Workspace owner</small></span><span class="user-indicator"></span></div></div>
   </aside>
   <div class="main-shell">
-    <header class="topbar"><div class="breadcrumb">Workspace ${icon('chevron-right')}<span id="crumb">Văn phòng 3D</span></div><div class="topbar-right"><span class="local-status"><span></span> Bản trải nghiệm · lưu cục bộ</span><button class="icon-button" id="help" aria-label="Hướng dẫn">${icon('circle-help')}</button><span class="mini-avatar">KT</span></div></header>
+    <header class="topbar"><div class="breadcrumb">Workspace ${icon('chevron-right')}<span id="crumb">Văn phòng 3D</span></div><div class="topbar-right"><details id="sound-controls" class="sound-controls"><summary aria-label="Điều khiển âm thanh"><span aria-hidden="true">♫</span><span id="sound-summary">Chạm để nghe</span></summary><div class="sound-popover"><div class="eyebrow">SOUNDS OF ATELIER</div><strong>Japanese ambient</strong><p>Giai điệu nhẹ tạo riêng cho văn phòng.</p><button class="button secondary full" id="audio-toggle">Phát nhạc</button><label for="music-volume">Âm lượng nhạc</label><input id="music-volume" type="range" min="0" max="60" step="1" value="20"><label class="voice-control"><input id="voice-toggle" type="checkbox"> Đọc lời thoại tiếng Việt</label><small>Giọng đọc tùy trình duyệt. Nhạc bắt đầu sau lần chạm đầu tiên.</small><span id="audio-status" role="status"></span></div></details><span class="local-status"><span></span> Lưu cục bộ</span><button class="icon-button" id="help" aria-label="Hướng dẫn">${icon('circle-help')}</button><span class="mini-avatar">KT</span></div></header>
     <main id="main"></main>
     <footer class="app-footer"><span><span class="live-dot"></span> Không gian cho những ý tưởng lớn</span><span>Made for curious minds. <span class="footer-flower">✳</span></span></footer>
   </div>
-  <div id="modal-root"></div><div id="toast" role="status" aria-live="polite"></div>`;
+  <div id="modal-root"></div><div id="toast" role="status" aria-live="polite"></div><div id="office-announcement" class="sr-only" role="status" aria-live="polite"></div>`;
+
+function updateAudioUI(state) {
+  if (!$('#sound-summary')) return;
+  const labels = { locked: 'Chạm để nghe', playing: 'Nhạc đang phát', muted: 'Nhạc đang tắt', paused: 'Nhạc tạm dừng', unsupported: 'Không hỗ trợ âm thanh' };
+  $('#sound-summary').textContent = labels[state.state];
+  $('#audio-status').textContent = labels[state.state];
+  $('#audio-toggle').textContent = state.state === 'playing' ? 'Tắt nhạc' : 'Phát nhạc';
+  $('#audio-toggle').disabled = state.state === 'unsupported';
+  $('#music-volume').value = Math.round(state.volume * 100);
+  $('#voice-toggle').checked = state.voice;
+  $('#sound-controls').dataset.state = state.state;
+}
+function updatePresence() {
+  for (const person of team) {
+    const working = life.isWorking(person.id);
+    office?.setWorking(person.id, working);
+    const card = document.querySelector(`.team-card[data-agent="${person.id}"] .team-card-bottom`);
+    if (card) card.innerHTML = `<span class="ready-dot"></span>${working ? 'Đang làm thử…' : 'Sẵn sàng nhận việc'} ${icon('arrow-up-right')}`;
+  }
+  hydrate();
+}
+function handleLifeEvent(event) {
+  const person = team.find(member => member.id === event.memberId);
+  office?.say(event.memberId, event.text, event.tone);
+  audio.speak(`${person.name}. ${event.text}`);
+  $('#office-announcement').textContent = `${person.name}: ${event.text}`;
+  if (event.tone === 'completed') { audio.chime(); if (activeView !== 'office' || $('#modal-root').children.length) toast(`${person.name}: ${event.text}`); }
+  updatePresence();
+}
+function openTaskResult(task) {
+  modal(`<div class="eyebrow">BẢN NHÁP MÔ PHỎNG · ${esc(life.member(task.memberId).role)}</div><h2>${esc(task.title)}</h2><p class="modal-intro">${esc(life.member(task.memberId).name)} đã tạo khung tham khảo theo mẫu. Chưa có AI nghiên cứu hoặc thực hiện đầu việc thật.</p><ol class="framework-list">${task.result.map(line => `<li>${esc(line)}</li>`).join('')}</ol><p class="fine-print">Dùng nội dung này làm checklist để phát triển đầu việc “${esc(task.title)}”. Cần bổ sung dữ liệu, nội dung chi tiết và người duyệt trước khi trình khách hàng.</p>`);
+}
+function goToTask(id) {
+  closeModal();
+  if (activeView !== 'office') { history.replaceState(null, '', '#office'); navigate('office'); }
+  $('#task-member').value = id; $('#task-title').focus();
+  $('#office-life').scrollIntoView({ behavior: motionEnabled ? 'smooth' : 'auto', block: 'center' });
+}
 
 function viewHeader(eyebrow, title, sub, button = true) {
   return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}<span class="heading-dot">.</span></h1><p>${sub}</p></div>${button ? `<button class="button primary" data-action="brief">${icon('plus', 'small')} Tạo brief mới</button>` : ''}</div>`;
@@ -67,14 +115,22 @@ function renderOffice() {
   const current = projects[0] || demo;
   $('#main').innerHTML = `${viewHeader('YOUR IDEAS, IN GOOD COMPANY', 'Một đội ngũ. Vạn ý tưởng', 'Chào Khải Tuệ, văn phòng đã sẵn sàng cho chiến lược tiếp theo của bạn.')}
     <div class="office-grid"><section class="office-panel"><div class="panel-top"><div class="panel-title">${icon('cuboid')}<strong>Japanese Study</strong><span class="outline-badge">Tầng 01</span></div><span class="room-status"><span></span> 5 vai trò</span></div>
-      <div class="zone-bar"><div class="zone-tabs" role="group" aria-label="Góc nhìn văn phòng">${Object.entries(officeZones).map(([id, zone]) => `<button data-zone="${id}" aria-pressed="${id === 'overview'}">${zone.label}</button>`).join('')}</div><span id="zone-detail">${officeZones.overview.detail}</span></div>
+      <div class="zone-bar"><div class="zone-tabs" role="group" aria-label="Góc nhìn văn phòng">${Object.entries(officeZones).map(([id, zone]) => `<button data-zone="${id}" aria-pressed="${id === 'overview'}">${zone.label}</button>`).join('')}</div><span id="zone-detail">${officeZones.overview.detail}</span><button id="motion-toggle" class="motion-toggle" aria-pressed="${motionEnabled}">${motionEnabled ? 'Chuyển động: bật' : 'Chuyển động: tắt'}</button></div>
       <div class="office-canvas-wrap"><div class="scene-corner"><span class="scene-tag">THE JAPANESE STUDY</span><span class="scene-subtitle">Studio · Góc riêng · Phòng họp · Khu trà</span></div><div id="office-canvas" role="region" aria-label="Văn phòng 3D tương tác với 5 chuyên gia"></div><div class="scene-hint">${icon('mouse-pointer-2')} Kéo để xoay · Chọn tên để gặp đội ngũ</div><div class="scene-tools"><button class="icon-button" id="zoom-in" aria-label="Phóng to">${icon('plus')}</button><button class="icon-button" id="zoom-out" aria-label="Thu nhỏ">${icon('minus')}</button><span></span><button class="icon-button" id="reset-view" aria-label="Đặt lại góc nhìn">${icon('scan')}</button><button class="icon-button" id="top-view" aria-label="Góc nhìn từ trên">${icon('layers-2')}</button></div></div>
       <div class="room-footer"><span><span class="live-dot"></span> Một khoảng lặng cho ý tưởng lớn</span><button class="text-link" id="meet-team">Gặp đội ngũ ${icon('arrow-right')}</button></div>
-    </section><aside class="right-column"><section class="project-panel"><div class="section-label">TRÊN BÀN LÀM VIỆC <span class="soft-badge">${projects.length ? 'Bản nháp' : 'Dự án mẫu'}</span></div><div class="client-logo">${icon('sprout')}</div><h2>${esc(current.client)}</h2><p>${esc(current.objective)}</p><div class="project-meta"><span>${icon('calendar-days')} ${esc(current.timing)}</span><span>${icon('wallet')} ${money(current.budget)}</span></div><div class="project-divider"></div><div class="plan-state"><span>Khung kế hoạch IMC</span><strong>5 giai đoạn</strong></div><div class="phase-strip"><span></span><span></span><span></span><span></span><span></span></div><div class="stacked-avatars">${team.map(p => avatar(p, 'tiny')).join('')}<span>Đủ góc nhìn, cùng mục tiêu</span></div><button class="button secondary full" id="open-current">Mở không gian dự án ${icon('arrow-up-right')}</button></section>
+    </section><div id="office-life"></div><aside class="right-column"><section class="project-panel"><div class="section-label">TRÊN BÀN LÀM VIỆC <span class="soft-badge">${projects.length ? 'Bản nháp' : 'Dự án mẫu'}</span></div><div class="client-logo">${icon('sprout')}</div><h2>${esc(current.client)}</h2><p>${esc(current.objective)}</p><div class="project-meta"><span>${icon('calendar-days')} ${esc(current.timing)}</span><span>${icon('wallet')} ${money(current.budget)}</span></div><div class="project-divider"></div><div class="plan-state"><span>Khung kế hoạch IMC</span><strong>5 giai đoạn</strong></div><div class="phase-strip"><span></span><span></span><span></span><span></span><span></span></div><div class="stacked-avatars">${team.map(p => avatar(p, 'tiny')).join('')}<span>Đủ góc nhìn, cùng mục tiêu</span></div><button class="button secondary full" id="open-current">Mở không gian dự án ${icon('arrow-up-right')}</button></section>
       <section class="inspiration"><span>${icon('lightbulb')}</span><div><h3>Good strategy starts with why.</h3><p>Đừng vội tìm ý tưởng. Hãy bắt đầu từ câu hỏi đúng.</p></div>${icon('sparkle')}</section></aside></div>
     <section class="team-section"><div class="section-heading"><div><h2>Những bộ óc phía sau ý tưởng <span class="number-tag">05</span></h2><p>Mỗi vai trò một thế mạnh. Cùng nhau tạo nên bức tranh lớn.</p></div><button class="text-link" id="all-team">Khám phá đội ngũ ${icon('arrow-right')}</button></div><div class="team-cards">${team.map(p => `<button class="team-card" data-agent="${p.id}"><div class="team-card-top">${avatar(p)}<span class="role-symbol">${icon({strategy:'compass',insight:'scan-search',creative:'pen-tool',media:'chart-no-axes-combined',account:'briefcase-business'}[p.id])}</span></div><h3>${esc(p.name)}</h3><p>${p.role}</p><div class="team-card-bottom"><span class="ready-dot"></span>Sẵn sàng nhận brief ${icon('arrow-up-right')}</div></button>`).join('')}</div></section>
     <section class="bottom-banner"><div class="banner-mark">${icon('workflow')}</div><div><h3>Từ một câu hỏi đến một chiến dịch.</h3><p>Brief → Insight → Strategy → Big Idea → IMC Plan</p></div><button class="text-link" data-action="brief">Bắt đầu hành trình ${icon('arrow-right')}</button></section>`;
-  try { office = createOffice($('#office-canvas'), openAgent); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
+  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
+  lifePanelDispose = mountLifePanel($('#office-life'), life, { onResult: openTaskResult, onNotice: toast, onFocus: id => office?.select(id) });
+  $('#motion-toggle').onclick = () => {
+    motionEnabled = !motionEnabled; office?.setMotion(motionEnabled);
+    try { localStorage.setItem('atelier-motion', String(motionEnabled)); } catch { /* Session preference still works. */ }
+    $('#motion-toggle').setAttribute('aria-pressed', String(motionEnabled));
+    $('#motion-toggle').textContent = motionEnabled ? 'Chuyển động: bật' : 'Chuyển động: tắt';
+  };
+  updatePresence();
   $('#open-current').onclick = () => openPlan(current);
   $('#meet-team').onclick = $('#all-team').onclick = () => navigate('team');
   function setZone(id) {
@@ -102,7 +158,7 @@ function renderLibrary() {
 }
 function navigate(view) {
   if (!['office', 'projects', 'team', 'library'].includes(view)) view = 'office';
-  office?.dispose(); office = null; activeView = view;
+  lifePanelDispose?.(); lifePanelDispose = null; office?.dispose(); office = null; activeView = view;
   const names = { office: 'Văn phòng 3D', projects: 'Dự án & chiến dịch', team: 'Đội ngũ của bạn', library: 'Thư viện chiến lược' };
   $('#crumb').textContent = names[view]; document.title = `${names[view]} — Atelier`;
   document.querySelectorAll('[data-view]').forEach(el => { el.classList.toggle('active', el.dataset.view === view); el.setAttribute('aria-label', names[el.dataset.view]); if (el.dataset.view === view) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); });
@@ -147,7 +203,7 @@ document.addEventListener('keydown', e => {
 function openAgent(id) {
   selectedAgent = team.find(p => p.id === id); if (!selectedAgent) return;
   const p = selectedAgent; office?.select(id);
-  modal(`<div class="agent-profile-top">${avatar(p, 'large')}<span class="soft-badge">Vai trò mô phỏng</span></div><div class="eyebrow">MEET YOUR TEAM</div><h2>${esc(p.name)}</h2><div class="person-role">${p.role}</div><p class="modal-intro">${p.description}</p><form id="rename-form" class="rename-form"><label for="character-name">Tên nhân vật</label><div class="rename-controls"><input id="character-name" name="characterName" value="${esc(p.name)}" maxlength="40" required autocomplete="off" aria-describedby="rename-error"><button class="button secondary" type="submit">Lưu tên</button></div><p id="rename-error" class="rename-error" role="alert"></p><small>Tên được lưu trên trình duyệt này.</small></form><div class="profile-focus"><span>CHUYÊN MÔN</span><strong>${p.focus}</strong></div><div class="skill-tags">${p.skills.map(s => `<span>${s}</span>`).join('')}</div><p class="fine-print">Nhân vật hiện mô tả vai trò chuyên môn. Chưa có AI đang chạy hoặc tự thực hiện nghiên cứu.</p><button class="button primary full" id="assign-brief">Tạo brief cho đội ngũ ${icon('arrow-right')}</button>`);
+  modal(`<div class="agent-profile-top">${avatar(p, 'large')}<span class="soft-badge">Vai trò mô phỏng</span></div><div class="eyebrow">MEET YOUR TEAM</div><h2>${esc(p.name)}</h2><div class="person-role">${p.role}</div><p class="modal-intro">${p.description}</p><div class="character-actions"><button data-talk="greet">👋 Chào hỏi</button><button data-talk="encourage">✨ Động viên</button><button data-talk="scold">☝ Nhắc nghiêm</button></div><button class="button primary full" id="give-task">Giao việc cho ${esc(p.name)} ${icon('arrow-up-right')}</button><form id="rename-form" class="rename-form"><label for="character-name">Tên nhân vật</label><div class="rename-controls"><input id="character-name" name="characterName" value="${esc(p.name)}" maxlength="40" required autocomplete="off" aria-describedby="rename-error"><button class="button secondary" type="submit">Lưu tên</button></div><p id="rename-error" class="rename-error" role="alert"></p><small>Tên được lưu trên trình duyệt này.</small></form><div class="profile-focus"><span>CHUYÊN MÔN</span><strong>${p.focus}</strong></div><div class="skill-tags">${p.skills.map(s => `<span>${s}</span>`).join('')}</div><p class="fine-print">Nhân vật hiện mô tả vai trò chuyên môn. Chưa có AI đang chạy hoặc tự thực hiện nghiên cứu.</p><button class="button primary full" id="assign-brief">Tạo brief cho đội ngũ ${icon('arrow-right')}</button>`);
   $('#rename-form').onsubmit = e => {
     e.preventDefault();
     try {
@@ -160,20 +216,33 @@ function openAgent(id) {
       toast('Đã cập nhật tên nhân vật.');
     } catch (error) { $('#rename-error').textContent = error.message; }
   };
+  $('#give-task').onclick = () => goToTask(p.id);
+  document.querySelectorAll('[data-talk]').forEach(button => button.onclick = () => {
+    const type = button.dataset.talk; closeModal();
+    if (activeView !== 'office') { history.replaceState(null, '', '#office'); navigate('office'); }
+    life.talk(p.id, type);
+  });
   $('#assign-brief').onclick = openBrief;
 }
 function openBrief() {
   modal(`<div class="eyebrow">GREAT WORK STARTS HERE</div><h2>Chiến dịch tiếp theo của bạn.</h2><p class="modal-intro">Cho đội ngũ một điểm bắt đầu. Hãy kể về bài toán khách hàng.</p><form id="brief-form"><label>Khách hàng / Thương hiệu <span>*</span><input name="client" required maxlength="100" placeholder="VD: Mộc — thương hiệu sống xanh" autocomplete="organization"></label><label>Mục tiêu truyền thông <span>*</span><textarea name="objective" required maxlength="1200" rows="3" placeholder="Bạn muốn thay đổi điều gì trong nhận thức hoặc hành vi của khách hàng?"></textarea></label><label>Đối tượng mục tiêu <span>*</span><input name="audience" required maxlength="300" placeholder="VD: Người trẻ 25–34 tuổi tại TP.HCM"></label><div class="form-row"><label>Ngân sách dự kiến (VNĐ)<input name="budget" type="number" min="1" max="100000000000000" step="1" placeholder="VD: 500000000"></label><label>Thời gian triển khai<input name="timing" maxlength="100" placeholder="VD: 8 tuần, Q1/2027"></label></div><div class="form-note">${icon('info')} Bản này tạo khung IMC theo mẫu, chưa sử dụng AI. Insight và KPI cần được nghiên cứu, kiểm chứng trước khi trình khách hàng.</div><p id="form-error" role="alert"></p><button class="button primary full" type="submit">Tạo khung kế hoạch IMC ${icon('arrow-right')}</button></form>`);
   $('#brief-form').onsubmit = e => {
     e.preventDefault();
-    try { const plan = createPlan(Object.fromEntries(new FormData(e.target))); projects.unshift(plan); persist(); navigate(activeView); openPlan(plan); toast('Đã lưu brief và khung kế hoạch trên trình duyệt.'); }
+    try { const plan = createPlan(Object.fromEntries(new FormData(e.target))); projects.unshift(plan); persist(); navigate(activeView); openPlan(plan); life.emit('account', `Đã nhận brief của ${plan.client}. Sếp có thể chia đầu việc cho đội ngũ ở Bàn điều phối nhé!`, 'assigned'); toast('Đã lưu brief và khung kế hoạch trên trình duyệt.'); }
     catch (err) { $('#form-error').textContent = err.message; }
   };
 }
 function openPlan(plan) {
   if (!plan) return;
   modal(`<div class="eyebrow">${plan.demo ? 'DỰ ÁN MẪU · ' : ''}IMC WORKING DOCUMENT</div><h2>${esc(plan.client)}</h2><p class="modal-intro">${esc(plan.objective)}</p><div class="plan-summary"><span><small>ĐỐI TƯỢNG</small>${esc(plan.audience)}</span><span><small>NGÂN SÁCH</small>${money(plan.budget)}</span><span><small>THỜI GIAN</small>${esc(plan.timing)}</span></div><div class="form-note">${icon('info')} Khung tham khảo theo mẫu. Phân bổ ngân sách là gợi ý ban đầu, chưa phải khuyến nghị được nghiên cứu. Đánh dấu khi đội ngũ của bạn đã hoàn thành.</div><div class="plan-phases">${plan.phases.map((p, i) => `<article class="plan-phase"><div class="phase-number">0${i + 1}</div><div><div class="phase-title"><h3>${esc(p.name)}</h3><span>${esc(getPhaseOwner(p))}</span></div><p>${esc(p.detail)}</p><div class="phase-kpi"><strong>Đầu ra / đo lường:</strong> ${esc(p.kpi)}</div><div class="phase-budget">${p.weight}% ngân sách · ${money(p.budget)}</div></div><label class="task-check"><input type="checkbox" aria-label="Hoàn thành ${esc(p.name)}" data-task="${plan.id}:${i}" ${checkedTasks.includes(`${plan.id}:${i}`) ? 'checked' : ''}></label></article>`).join('')}</div><div class="modal-actions"><span class="fine-print">${plan.demo ? 'Nội dung mẫu để khám phá luồng làm việc.' : 'Đã lưu trên trình duyệt này.'}</span><button class="button primary" id="export-plan">${icon('download')} Xuất Markdown</button></div>`, true);
-  document.querySelectorAll('[data-task]').forEach(el => el.onchange = () => { checkedTasks = checkedTasks.filter(t => t !== el.dataset.task); if (el.checked) checkedTasks.push(el.dataset.task); persist(); });
+  document.querySelectorAll('[data-task]').forEach(el => el.onchange = () => {
+    checkedTasks = checkedTasks.filter(t => t !== el.dataset.task); if (el.checked) checkedTasks.push(el.dataset.task); persist();
+    if (el.checked) {
+      const phase = plan.phases[Number(el.dataset.task.split(':').at(-1))];
+      const person = team.find(member => member.name === getPhaseOwner(phase));
+      if (person) life.emit(person.id, `Sếp đã xác nhận hoàn thành ${phase.name} cho ${plan.client}. Mình cập nhật rồi!`, 'completed');
+    }
+  });
   $('#export-plan').onclick = () => {
     const markdown = `# ${plan.client}\n\n> Khung IMC theo mẫu — chưa sử dụng AI. Insight, phân bổ ngân sách và chỉ tiêu cần kiểm chứng.\n\nMục tiêu: ${plan.objective}\n\nĐối tượng: ${plan.audience}\n\nNgân sách: ${money(plan.budget)}\n\nThời gian: ${plan.timing}\n\n` + plan.phases.map((p, i) => `## ${i + 1}. ${p.name}\n\nPhụ trách: ${getPhaseOwner(p)}\n\n${p.detail}\n\nĐầu ra / đo lường: ${p.kpi}\n\nNgân sách gợi ý: ${p.weight}% · ${money(p.budget)}\n\nTrạng thái: ${checkedTasks.includes(`${plan.id}:${i}`) ? 'Hoàn thành' : 'Chưa hoàn thành'}\n`).join('\n');
     const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }));
@@ -184,5 +253,21 @@ document.querySelectorAll('[data-view]').forEach(el => el.onclick = () => { loca
 window.addEventListener('hashchange', () => navigate(location.hash.slice(1)));
 $('#settings').onclick = () => modal(`<div class="eyebrow">WORKSPACE SETTINGS</div><h2>Không gian riêng của bạn.</h2><p class="modal-intro">Atelier hiện là bản trải nghiệm chạy trên trình duyệt.</p><div class="settings-row"><strong>Lưu trữ</strong><span>Cục bộ · ${projects.length} dự án</span></div><div class="settings-row"><strong>AI</strong><span>Chưa kết nối</span></div><div class="settings-row"><strong>Cộng tác nhiều người</strong><span>Chưa hỗ trợ</span></div><p class="fine-print">Không nhập dữ liệu mật của khách hàng vào bản demo. Để dùng thực tế cần bổ sung đăng nhập, cơ sở dữ liệu và kết nối AI qua backend.</p>`);
 $('#workspace-info').onclick = () => toast('Khải Tuệ Studio · Workspace cá nhân trên trình duyệt này.');
-$('#help').onclick = () => modal(`<div class="eyebrow">WELCOME TO ATELIER</div><h2>Gặp nhau ở nơi ý tưởng bắt đầu.</h2><ol class="framework-list"><li>Kéo trong văn phòng để xoay góc nhìn; dùng + / − để phóng hoặc thu.</li><li>Chọn tên nhân vật để tìm hiểu vai trò chuyên môn.</li><li>Tạo brief với khách hàng, mục tiêu, đối tượng và ngân sách dự kiến.</li><li>Xem khung IMC gồm 5 giai đoạn, theo dõi đầu việc và xuất Markdown.</li></ol><p class="fine-print">Bản trải nghiệm sử dụng vai trò mô phỏng và khung kế hoạch theo mẫu. Không có agent AI hoặc dữ liệu nghiên cứu trực tiếp.</p>`);
+$('#help').onclick = () => modal(`<div class="eyebrow">WELCOME TO ATELIER</div><h2>Gặp nhau ở nơi ý tưởng bắt đầu.</h2><ol class="framework-list"><li>Kéo trong văn phòng để xoay góc nhìn; dùng + / − để phóng hoặc thu.</li><li>Chọn tên nhân vật để chào hỏi, động viên, nhắc nghiêm hoặc giao việc.</li><li>Bàn điều phối có lượt làm thử theo mẫu, thông báo hoàn thành và nút xem bản nháp. Nhân vật chưa kết nối AI thật.</li><li>Nhạc bắt đầu sau lần chạm đầu tiên. Mở menu ♫ để tắt nhạc, chỉnh âm lượng hoặc bật đọc lời thoại. Nút Chuyển động giúp bật/tắt cử động.</li><li>Tạo brief với khách hàng, mục tiêu, đối tượng và ngân sách dự kiến.</li><li>Xem khung IMC gồm 5 giai đoạn, theo dõi đầu việc và xuất Markdown.</li></ol><p class="fine-print">Bản trải nghiệm sử dụng vai trò mô phỏng và khung kế hoạch theo mẫu. Không có agent AI hoặc dữ liệu nghiên cứu trực tiếp.</p>`);
+updateAudioUI(audio.snapshot());
+$('#audio-toggle').onclick = () => void audio.toggle();
+$('#music-volume').oninput = event => audio.setVolume(Number(event.target.value) / 100);
+$('#voice-toggle').onchange = event => audio.setVoice(event.target.checked);
+function unlockSound(event) {
+  if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+  document.removeEventListener('pointerdown', unlockSound); document.removeEventListener('keydown', unlockSound);
+  if (!event.target.closest('#audio-toggle')) void audio.unlock();
+}
+document.addEventListener('pointerdown', unlockSound);
+document.addEventListener('keydown', unlockSound);
+setInterval(() => life.tick(), 500);
+motionPreference.addEventListener('change', event => {
+  if (event.matches) { motionEnabled = false; office?.setMotion(false); const button = $('#motion-toggle'); if (button) { button.setAttribute('aria-pressed', 'false'); button.textContent = 'Chuyển động: tắt'; } }
+});
 navigate(location.hash.slice(1) || 'office');
+setTimeout(() => { if (!life.log.length) office?.say('strategy', 'Chào sếp! Văn phòng đã có nhịp sống mới. Chọn một người để trò chuyện hoặc giao việc nhé.'); }, 900);

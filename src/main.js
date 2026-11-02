@@ -67,7 +67,7 @@ $('#app').innerHTML = `
   </aside>
   <div class="main-shell">
     <header class="topbar"><div class="breadcrumb">Workspace ${icon('chevron-right')}<span id="crumb">Văn phòng 3D</span></div><div class="topbar-right"><details id="sound-controls" class="sound-controls"><summary aria-label="Điều khiển âm thanh"><span aria-hidden="true">♫</span><span id="sound-summary">Chạm để nghe</span></summary><div class="sound-popover"><div class="eyebrow">SOUNDS OF ATELIER</div><strong>Japanese ambient</strong><p>Giai điệu nhẹ tạo riêng cho văn phòng.</p><button class="button secondary full" id="audio-toggle">Phát nhạc</button><label for="music-volume">Âm lượng nhạc</label><input id="music-volume" type="range" min="0" max="60" step="1" value="20"><label class="voice-control"><input id="voice-toggle" type="checkbox"> Đọc lời thoại tiếng Việt</label><small>Giọng đọc tùy trình duyệt. Nhạc bắt đầu sau lần chạm đầu tiên.</small><span id="audio-status" role="status"></span></div></details><span class="local-status"><span></span> Lưu cục bộ</span><button class="icon-button" id="help" aria-label="Hướng dẫn">${icon('circle-help')}</button><span class="mini-avatar">KT</span></div></header>
-    <section id="official-player-strip" class="official-player-strip" aria-label="Nhạc văn phòng" hidden></section><main id="main"></main>
+    <main id="main"></main>
     <footer class="app-footer"><span><span class="live-dot"></span> Không gian cho những ý tưởng lớn</span><span>Made for curious minds. <span class="footer-flower">✳</span></span></footer>
   </div>
   <div id="office-chat-root"></div><div id="modal-root"></div><div id="toast" role="status" aria-live="polite"></div><div id="office-announcement" class="sr-only" role="status" aria-live="polite"></div>`;
@@ -143,12 +143,12 @@ function renderOffice() {
     <div class="office-grid"><section class="office-panel"><div class="panel-top"><div class="panel-title">${icon('cuboid')}<strong>Japanese Study</strong><span class="outline-badge">Tầng 01</span></div><span class="room-status"><span></span> 5 vai trò</span></div>
       <div class="zone-bar"><div class="zone-tabs" role="group" aria-label="Góc nhìn văn phòng">${Object.entries(officeZones).map(([id, zone]) => `<button data-zone="${id}" aria-pressed="${id === 'overview'}">${zone.label}</button>`).join('')}</div><span id="zone-detail">${officeZones.overview.detail}</span><button id="motion-toggle" class="motion-toggle" aria-pressed="${motionEnabled}">${motionEnabled ? 'Chuyển động: bật' : 'Chuyển động: tắt'}</button></div>
       <div class="office-canvas-wrap"><div class="scene-corner"><span class="scene-tag">THE JAPANESE STUDY</span><span class="scene-subtitle">Studio · Góc riêng · Phòng họp · Khu trà</span></div><div id="office-canvas" role="region" aria-label="Văn phòng 3D tương tác với 5 chuyên gia"></div><div class="scene-hint">${icon('mouse-pointer-2')} Kéo để xoay · Chọn tên để gặp đội ngũ</div><div class="scene-tools"><button class="icon-button" id="zoom-in" aria-label="Phóng to">${icon('plus')}</button><button class="icon-button" id="zoom-out" aria-label="Thu nhỏ">${icon('minus')}</button><span></span><button class="icon-button" id="reset-view" aria-label="Đặt lại góc nhìn">${icon('scan')}</button><button class="icon-button" id="top-view" aria-label="Góc nhìn từ trên">${icon('layers-2')}</button></div></div>
-      <div class="room-footer"><span><span class="live-dot"></span> Một khoảng lặng cho ý tưởng lớn</span><button class="text-link" id="meet-team">Gặp đội ngũ ${icon('arrow-right')}</button></div>
+      <div class="tv-controls"><span>TIVI VĂN PHÒNG</span><button id="tv-focus">Xem gần tivi</button><button id="tv-play">Phát H2H</button><button id="tv-plan">Trình chiếu kế hoạch</button><button id="tv-stop">Tắt tivi</button></div><div class="room-footer"><span><span class="live-dot"></span> Một khoảng lặng cho ý tưởng lớn</span><button class="text-link" id="meet-team">Gặp đội ngũ ${icon('arrow-right')}</button></div>
     </section><div id="office-life"></div><aside class="right-column"><section class="project-panel"><div class="section-label">TRÊN BÀN LÀM VIỆC <span class="soft-badge">${projects.length ? 'Bản nháp' : 'Dự án mẫu'}</span></div><div class="client-logo">${icon('sprout')}</div><h2>${esc(current.client)}</h2><p>${esc(current.objective)}</p><div class="project-meta"><span>${icon('calendar-days')} ${esc(current.timing)}</span><span>${icon('wallet')} ${money(current.budget)}</span></div><div class="project-divider"></div><div class="plan-state"><span>Khung kế hoạch IMC</span><strong>5 giai đoạn</strong></div><div class="phase-strip"><span></span><span></span><span></span><span></span><span></span></div><div class="stacked-avatars">${team.map(p => avatar(p, 'tiny')).join('')}<span>Đủ góc nhìn, cùng mục tiêu</span></div><button class="button secondary full" id="open-current">Mở không gian dự án ${icon('arrow-up-right')}</button></section>
       <section class="inspiration"><span>${icon('lightbulb')}</span><div><h3>Good strategy starts with why.</h3><p>Đừng vội tìm ý tưởng. Hãy bắt đầu từ câu hỏi đúng.</p></div>${icon('sparkle')}</section></aside></div>
     <section class="team-section"><div class="section-heading"><div><h2>Những bộ óc phía sau ý tưởng <span class="number-tag">05</span></h2><p>Mỗi vai trò một thế mạnh. Cùng nhau tạo nên bức tranh lớn.</p></div><button class="text-link" id="all-team">Khám phá đội ngũ ${icon('arrow-right')}</button></div><div class="team-cards">${team.map(p => `<button class="team-card" data-agent="${p.id}"><div class="team-card-top">${avatar(p)}<span class="role-symbol">${icon({strategy:'compass',insight:'scan-search',creative:'pen-tool',media:'chart-no-axes-combined',account:'briefcase-business'}[p.id])}</span></div><h3>${esc(p.name)}</h3><p>${p.role}</p><div class="team-card-bottom"><span class="ready-dot"></span>Sẵn sàng nhận brief ${icon('arrow-up-right')}</div></button>`).join('')}</div></section>
     <section class="bottom-banner"><div class="banner-mark">${icon('workflow')}</div><div><h3>Từ một câu hỏi đến một chiến dịch.</h3><p>Brief → Insight → Strategy → Big Idea → IMC Plan</p></div><button class="text-link" data-action="brief">Bắt đầu hành trình ${icon('arrow-right')}</button></section>`;
-  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled, onAmbient: (id, text) => life.emit(id, text, 'ambient'), onCallArrival: id => life.emit(id, 'Em đã tới lối đi giữa văn phòng rồi sếp. Sếp cần trao đổi gì ạ?', 'arrived') }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
+  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled, onAmbient: (id, text) => life.emit(id, text, 'ambient'), onCallArrival: id => life.emit(id, 'Em đã tới lối đi giữa văn phòng rồi sếp. Sếp cần trao đổi gì ạ?', 'arrived'), tvElement: officialMusic.surface, onTVVisibility: visible => officialMusic.setVisible(visible) }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
   lifePanelDispose = mountLifePanel($('#office-life'), life, { onResult: openTaskResult, onNotice: toast, onFocus: id => office?.select(id), onRun: runOfficeTask });
   $('#motion-toggle').onclick = () => {
     motionEnabled = !motionEnabled; office?.setMotion(motionEnabled);
@@ -157,6 +157,10 @@ function renderOffice() {
     $('#motion-toggle').textContent = motionEnabled ? 'Chuyển động: bật' : 'Chuyển động: tắt';
   };
   updatePresence();
+  $('#tv-focus').onclick = () => setZone('tv');
+  $('#tv-play').onclick = () => officialMusic.play(true);
+  $('#tv-plan').onclick = () => officialMusic.showPlan(current);
+  $('#tv-stop').onclick = () => officialMusic.stop();
   $('#open-current').onclick = () => openPlan(current);
   $('#meet-team').onclick = $('#all-team').onclick = () => navigate('team');
   function setZone(id) {
@@ -184,6 +188,7 @@ function renderLibrary() {
 }
 function navigate(view) {
   if (!['office', 'projects', 'team', 'library'].includes(view)) view = 'office';
+  if (office) officialMusic?.leaveOffice();
   lifePanelDispose?.(); lifePanelDispose = null; office?.dispose(); office = null; activeView = view;
   const names = { office: 'Văn phòng 3D', projects: 'Dự án & chiến dịch', team: 'Đội ngũ của bạn', library: 'Thư viện chiến lược' };
   $('#crumb').textContent = names[view]; document.title = `${names[view]} — Atelier`;
@@ -286,7 +291,18 @@ life.subscribe(() => {
   updatePresence(); officeChat.refresh();
   for (const task of [...life.tasks]) if (task.status === 'returning' && (!office || office.isAtDesk(task.memberId))) life.begin(task.id);
 });
-officialMusic = mountOfficialMusic($('.sound-popover'), audio, updateAudioUI);
+officialMusic = mountOfficialMusic($('.sound-popover'), audio, updateAudioUI, { showTV: focus => {
+  if (activeView !== 'office' && !focus) return false;
+  if (activeView !== 'office') { history.replaceState(null, '', '#office'); navigate('office'); }
+  if (!office) return false;
+  if (focus) {
+    office?.focusZone('tv');
+    document.querySelectorAll('[data-zone]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.zone === 'tv')));
+    if ($('#zone-detail')) $('#zone-detail').textContent = officeZones.tv.detail;
+    $('.office-panel')?.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }
+  return true;
+} });
 updateAudioUI(audio.snapshot());
 $('#audio-toggle').onclick = () => officialMusic.toggleAmbient();
 $('#music-volume').oninput = event => audio.setVolume(Number(event.target.value) / 100);
@@ -294,7 +310,7 @@ $('#voice-toggle').onchange = event => audio.setVoice(event.target.checked);
 function unlockSound(event) {
   if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
   document.removeEventListener('click', unlockSound); document.removeEventListener('keydown', unlockSound);
-  if (!event.target.closest('#audio-toggle,#youtube-play,#youtube-stop')) officialMusic.activate();
+  if (!event.target.closest('#audio-toggle,#youtube-play,#youtube-stop,#tv-play,#tv-stop,#tv-plan')) officialMusic.activate();
 }
 document.addEventListener('click', unlockSound);
 document.addEventListener('keydown', unlockSound);

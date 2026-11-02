@@ -4,8 +4,9 @@ import { team } from './planner.js';
 import { makeOfficeTextures } from './materials.js';
 import { buildJapaneseOffice, officeZones } from './office-layout.js';
 import { OfficeNavigation } from './office-navigation.js';
+import { mountTVScreen } from './office-tv.js';
 
-export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {} } = {}) {
+export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {}, tvElement = null, onTVVisibility = () => {} } = {}) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, .1, 100);
   camera.position.set(...officeZones.overview.offset);
@@ -16,7 +17,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0xeceee7, 0);
   container.appendChild(renderer.domElement);
-  const controls = new OrbitControls(camera, renderer.domElement);
+  const controls = new OrbitControls(camera, container);
+  container.style.touchAction = 'none';
   controls.target.set(0, 1, 0);
   controls.enableDamping = true;
   controls.minDistance = 9;
@@ -67,9 +69,11 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     obj.position.set(x, y, z); obj.castShadow = true; parent.add(obj); return obj;
   }
   const { seats, animateNature } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const tvLayer = tvElement ? mountTVScreen(container, scene, camera, tvElement, onTVVisibility) : null;
   const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
   const agents = [];
   const labels = document.createElement('div'); labels.className = 'scene-labels'; container.append(labels);
+  labels.addEventListener('pointerdown', event => event.stopPropagation());
   const connectors = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   connectors.classList.add('label-connectors'); connectors.setAttribute('aria-hidden', 'true'); labels.append(connectors);
   const bubbles = new Map();
@@ -108,7 +112,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   document.fonts.ready.then(() => { needsRender = true; });
   const observer = new ResizeObserver(() => {
     const { width, height } = container.getBoundingClientRect();
-    renderer.setSize(width, height); camera.aspect = width / height;
+    renderer.setSize(width, height); tvLayer?.resize(width, height); camera.aspect = width / height;
     camera.fov = camera.aspect < 1.15 ? 50 : 32;
     camera.updateProjectionMatrix();
     needsRender = true;
@@ -144,7 +148,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
       });
     });
     needsRender = false;
-    renderer.render(scene, camera);
+    renderer.render(scene, camera); tvLayer?.render();
     const { width, height } = container.getBoundingClientRect();
     connectors.setAttribute('viewBox', `0 0 ${width} ${height}`);
     const bubbleRects = [];
@@ -196,6 +200,9 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   animate(performance.now());
   function focusZone(id) {
     const zone = officeZones[id] || officeZones.overview;
+    controls.minDistance = id === 'tv' ? 6 : 9;
+    controls.maxPolarAngle = id === 'tv' ? Math.PI / 2 : Math.PI / 2.5;
+    const fixture = scene.getObjectByName('studio-overhead-fixture'); if (fixture) fixture.visible = id !== 'tv';
     controls.target.set(...zone.target);
     camera.position.copy(controls.target).add(new THREE.Vector3(...zone.offset));
     controls.update(); needsRender = true;
@@ -225,6 +232,6 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     zoom(delta) { const offset = camera.position.clone().sub(controls.target); offset.multiplyScalar(delta); if (offset.length() >= controls.minDistance && offset.length() <= controls.maxDistance) camera.position.copy(controls.target).add(offset); needsRender = true; },
     reset() { focusZone('overview'); },
     top() { camera.position.copy(controls.target).add(new THREE.Vector3(0, 32, 11)); controls.update(); needsRender = true; },
-    dispose() { for (const record of bubbles.values()) { clearTimeout(record.timer); record.element.remove(); } bubbles.clear(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(obj => { obj.geometry?.dispose(); obj.material?.dispose(); }); Object.values(textures).forEach(texture => texture.dispose()); sunlight.shadow.dispose(); renderer.dispose(); labels.remove(); renderer.domElement.remove(); },
+    dispose() { tvLayer?.dispose(); for (const record of bubbles.values()) { clearTimeout(record.timer); record.element.remove(); } bubbles.clear(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(obj => { obj.geometry?.dispose(); obj.material?.dispose(); }); Object.values(textures).forEach(texture => texture.dispose()); sunlight.shadow.dispose(); renderer.dispose(); labels.remove(); renderer.domElement.remove(); },
   };
 }

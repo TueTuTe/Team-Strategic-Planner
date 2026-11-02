@@ -68,7 +68,7 @@ test('embeds the requested YouTube video and stops it when switching to ambient'
   await expect(page.locator('#sound-controls')).toHaveAttribute('data-state', 'playing');
   await page.getByRole('button', { name: 'Phát Pretty Please', exact: true }).click();
   await expect(player).toBeVisible();
-  await page.locator('#youtube-dock-stop').click();
+  await page.locator('#tv-stop').click();
   await expect(player).toHaveCount(0);
   await expect(page.locator('#sound-controls')).toHaveAttribute('data-state', 'muted');
 });

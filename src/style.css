@@ -104,3 +104,32 @@
 @media(max-width:760px){.official-player-strip{margin:18px 20px 0;padding:15px;gap:15px;align-items:flex-start;flex-direction:column}.music-strip-copy>strong{font-size:16px}.official-player-strip #youtube-player{width:100%}.music-strip-copy>p{font-size:9px}.music-strip-copy>a,.music-strip-copy>button{margin-top:10px}.official-player-strip iframe{height:200px}}
 @media(max-width:480px){.official-player-strip{margin:15px 13px 0;padding:12px}}
 .label-connectors line.speech-connector{stroke:#9d936e;stroke-width:1;stroke-dasharray:3 3;opacity:.6}
+
+/* Native video and slides sit on the actual 3D television surface. */
+.tv-css-layer{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+#office-canvas>canvas{position:relative;z-index:2;pointer-events:none}
+#office-canvas>.scene-labels{z-index:3}
+.tv-screen{width:960px;height:540px;overflow:hidden;background:#101f1b;color:#f6efd9;pointer-events:auto;backface-visibility:hidden;font-family:'Be Vietnam Pro',sans-serif}
+.tv-screen #youtube-player{width:960px;height:540px}
+.tv-screen #youtube-player iframe{width:960px;height:540px;min-width:0;border:0;border-radius:0;display:block}
+.tv-standby{height:100%;padding:42px 58px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 80% 20%,#46543a,#132a23 65%)}
+.tv-channel{font-size:13px;letter-spacing:5px;color:#b5c79b;font-weight:500}
+.tv-standby h2{font-family:'DM Sans',sans-serif;font-size:70px;letter-spacing:-3px;line-height:1.12;font-weight:500;margin:68px 0 20px;position:relative;z-index:1}
+.tv-standby p{font-size:15px;letter-spacing:1px;color:#b5bda0;position:relative;z-index:1}
+.tv-standby button{margin-top:27px;padding:13px 21px;background:#c5d2a4;color:#344a32;border-radius:5px;font-size:16px;position:relative;z-index:1}
+.tv-standby button span{font-size:12px;margin-left:20px}
+.tv-orbit{position:absolute;right:65px;top:60px;font-size:310px;line-height:1;color:#b5c69a22;font-family:serif}
+.tv-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-top:1px solid #e4ddcd;padding:11px 18px;background:#f6f2e8}
+.tv-controls>span{font-size:8px;letter-spacing:1.2px;color:#a08a68;margin-right:auto}
+.tv-controls>button{font-size:9px;color:#846c4b;border:1px solid #ded3be;border-radius:5px;padding:7px 11px;background:#fcf9f1}
+.tv-controls>button:hover{background:#e9dfc9}
+.tv-slide{height:100%;padding:42px 58px;background:#f2efdf;color:#334a36;position:relative}
+.tv-slide .tv-channel{color:#879b70;font-size:12px}
+.tv-slide-label{display:block;font-size:13px;letter-spacing:3px;color:#a18b5f;margin-top:60px}
+.tv-slide h2{font-family:'DM Sans',sans-serif;font-size:53px;font-weight:550;line-height:1.2;letter-spacing:-2px;margin:16px 0 20px;max-width:820px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tv-slide p{font-size:23px;line-height:1.6;color:#879572;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tv-slide-footer{position:absolute;bottom:30px;left:58px;right:58px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #d9dec9;padding-top:18px}
+.tv-slide-footer>span{font-size:10px;letter-spacing:3px;color:#9ca58c}
+.tv-slide-footer nav{display:flex;align-items:center;gap:20px;font-size:14px;color:#7d916a}
+.tv-slide-footer button{background:#e1e8d2;padding:5px 15px;border-radius:4px;font-size:19px}
+@media(max-width:760px){.tv-controls{gap:6px;padding:10px 12px}.tv-controls>span{width:100%;margin-bottom:2px}.tv-controls>button{font-size:8px;padding:7px 8px}}

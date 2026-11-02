@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildNatureCorner } from './nature-corner.js';
+import { officeTV } from './office-tv.js';
 
 export const officeZones = {
   overview: { label: 'Toàn cảnh', detail: '4 khu riêng · 5 chỗ làm việc · 10 màn hình', target: [0, .9, 0], offset: [22, 21, 26] },
@@ -7,6 +8,7 @@ export const officeZones = {
   studio: { label: 'Khu làm việc', detail: 'Studio · 4 chỗ làm việc, mỗi người 2 màn hình', target: [-4.8, .9, 2.3], offset: [9, 9, 11] },
   meeting: { label: 'Phòng họp', detail: 'Phòng họp · 8 chỗ · Vách kính và cửa mở', target: [5, 1, -3.7], offset: [9, 8.5, 10] },
   tea: { label: 'Khu thưởng trà', detail: 'Khu trà riêng · Tatami, bàn thấp và 6 đệm ngồi', target: [5.1, .8, 4], offset: [7.5, 8.5, 9] },
+  tv: { label: 'Tivi', detail: 'Tivi lớn · H2H / trình chiếu kế hoạch', target: [-8.5, 2.3, 1.4], offset: [6.8, 0, 0] },
 };
 
 export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures }) {
@@ -104,6 +106,17 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   plaque('CREATIVE STUDIO', -4.85, .065, 5.9, 3, true);
   bonsai(-8.1, 5.85, 0, 1.2);
 
+  // A large shared TV against the shoji wall, separate from personal monitors.
+  const television = new THREE.Group(); television.name = 'office-presentation-tv';
+  television.position.set(...officeTV.position); television.rotation.y = officeTV.rotation; scene.add(television);
+  box(5.05, 2.92, .18, '#262d29', 0, 0, 0, television);
+  box(4.9, 2.79, .02, '#141f1b', 0, 0, .098, television);
+  sphere(.022, '#a7c18a', 2.3, -1.39, .108, television);
+  box(.4, .24, .15, '#384337', 0, -1.52, -.02, television);
+  box(.58, .73, 5.15, 'walnut', -8.65, .42, 1.4);
+  box(.66, .08, 5.25, 'oak', -8.63, .82, 1.4);
+  for (let i = 0; i < 30; i++) box(.035, .58, .055, 'oak', -8.34, .42, -1.06 + i * .17);
+
   // Thôi Chí Vũ has an alcove with an open front, not a sealed private room.
   box(5.25, .025, 4.1, '#9b967c', -5.65, .06, -4.2);
   table(-5.65, -4.8, 3.25, 1.3);
@@ -199,12 +212,13 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
 
   // Paper lamps stay below sparse ceiling beams, leaving the model open above.
   for (const [x, z] of [[-4.85, 2.2], [5.2, 4.05], [5.05, -3.65]]) {
-    box(.09, .14, z + 7, 'walnut', x, 3.85, (z - 7) / 2);
-    cylinder(.012, .012, .45, '#514838', x, 3.49, z);
-    cylinder(.37, .37, .54, 'lantern', x, 3.01, z);
+    const fixture = new THREE.Group(); fixture.name = x === -4.85 ? 'studio-overhead-fixture' : 'overhead-fixture'; scene.add(fixture);
+    box(.09, .14, z + 7, 'walnut', x, 3.85, (z - 7) / 2, fixture);
+    cylinder(.012, .012, .45, '#514838', x, 3.49, z, fixture);
+    cylinder(.37, .37, .54, 'lantern', x, 3.01, z, fixture);
     for (let i = 0; i < 9; i++) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(.374, .008, 4, 32), mat('#a8956a'));
-      ring.rotation.x = Math.PI / 2; ring.position.set(x, 2.77 + i * .06, z); scene.add(ring);
+      ring.rotation.x = Math.PI / 2; ring.position.set(x, 2.77 + i * .06, z); fixture.add(ring);
     }
     const glow = new THREE.PointLight('#ffd398', 8, 7, 2); glow.position.set(x, 2.85, z); scene.add(glow);
   }

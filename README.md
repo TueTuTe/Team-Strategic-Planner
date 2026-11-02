@@ -47,9 +47,9 @@ Chat hiện dùng bộ nhận diện ý định và trạng thái task cục b�
 
 ## Pretty Please qua YouTube
 
-Trình phát nhúng dùng đúng [video người dùng cung cấp](https://www.youtube.com/watch?v=ufwB9Uja_wM), không tải hoặc đóng gói bản thu. Sau lần tương tác đầu tiên, trình phát xuất hiện trong vùng nhạc riêng trên trang; có thể cần bấm nút Play của YouTube theo chính sách trình duyệt. Nút **Mở trên YouTube** là đường dẫn dự phòng nếu video không cho nhúng hoặc không phát được trên thiết bị.
+Trình phát nhúng dùng đúng [video người dùng cung cấp](https://www.youtube.com/watch?v=ufwB9Uja_wM), không tải hoặc đóng gói bản thu. Sau lần tương tác đầu tiên, trình phát xuất hiện trên tivi lớn trong văn phòng 3D; có thể cần bấm nút Play của YouTube theo chính sách trình duyệt. Nút **Mở trên YouTube** là đường dẫn dự phòng nếu video không cho nhúng hoặc không phát được trên thiết bị.
 
-Chuyển sang YouTube sẽ dừng ambient; chuyển về ambient hoặc nhấn **Dừng & thu gọn** sẽ gỡ iframe. Phát video cần Internet; bản HTML ngoại tuyến vẫn dùng được văn phòng, chat, task và nhạc ambient. Kiểm thử xác nhận URL video và các thao tác chuyển nguồn với iframe giả lập, không xác nhận bản thu thực tế phát được ở mọi khu vực/thiết bị.
+Chuyển sang YouTube sẽ dừng ambient; chuyển về ambient hoặc nhấn **Tắt tivi** sẽ gỡ iframe. Phát video cần Internet; bản HTML ngoại tuyến vẫn dùng được văn phòng, chat, task và nhạc ambient. Kiểm thử xác nhận URL video và các thao tác chuyển nguồn với iframe giả lập, không xác nhận bản thu thực tế phát được ở mọi khu vực/thiết bị.
 
 ## Chạy ứng dụng
 
@@ -84,3 +84,14 @@ Kiểm thử trình duyệt sử dụng Chromium tại `/usr/bin/chromium`; đ�
 ## Công nghệ
 
 Vite, JavaScript, Three.js, Lucide và font Be Vietnam Pro / DM Sans được đóng gói cục bộ. Không cần database hoặc dịch vụ bên ngoài cho bản trải nghiệm.
+
+## Tivi lớn trong văn phòng
+
+Tivi dùng chung nằm trên vách shoji cạnh khu làm việc; màn hình được chiếu đúng vị trí và phối cảnh 3D khi xoay, phóng to hoặc đổi kích thước cửa sổ. Đây là tivi bổ sung, tách khỏi màn hình trình bày trong phòng họp và 10 màn hình cá nhân.
+
+- **Phát H2H** mở video YouTube người dùng đã chọn trên mặt tivi và chuyển camera tới góc xem gần. Các nút Play của YouTube vẫn thuộc trình phát gốc.
+- **Xem gần tivi** hoặc tab **Tivi** đưa camera ngang màn hình; đèn treo phía trước được ẩn trong góc xem này để không che nội dung.
+- **Trình chiếu kế hoạch** đưa brief, đối tượng và khung IMC của dự án mới nhất lên 3 slide; chuyển slide bằng nút mũi tên ngay trên tivi. Nếu chưa có dự án mới thì chiếu dữ liệu mẫu Mộc.
+- **Tắt tivi**, chuyển sang ambient, quay camera ra sau tivi hoặc rời trang văn phòng sẽ dừng video; không phát video ở một trình phát bị ẩn.
+
+Video được giữ trong iframe gốc và không sao chép vào WebGL texture. Lớp HTML được ánh xạ vào bốn góc màn hình, kết hợp mặt nạ độ sâu để các vật thể phía trước vẫn che khuất tivi đúng vị trí. Kiểm thử xác nhận URL video, mặt màn hình, bấm chuyển slide, xoay camera, mobile và thao tác dừng/chuyển nguồn bằng iframe giả lập; không khẳng định bản thu YouTube thực tế phát được trong mọi trình duyệt hoặc khu vực.

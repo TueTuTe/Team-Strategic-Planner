@@ -1,0 +1,31 @@
+import { test, expect } from '@playwright/test';
+
+test('reception wall TV faces the sofa and switches content and power with motion disabled', async ({ page }) => {
+  test.setTimeout(60000);
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => { if (top === self) localStorage.setItem('atelier-audio-v1', JSON.stringify({ enabled: false })); });
+  await page.route('https://www.youtube-nocookie.com/**', route => route.fulfill({ contentType: 'text/html', body: '<p>YouTube fixture</p>' }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Xem tivi sảnh', exact: true }).click();
+  await expect(page.locator('[data-zone="receptionTV"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Chuyển động: tắt', exact: true })).toBeVisible();
+  await page.waitForTimeout(500);
+  await page.locator('.office-panel').screenshot({ path: '/tmp/atelier-reception-tv.png' });
+  const canvas = page.locator('#office-canvas canvas'), welcome = await canvas.screenshot();
+  await page.getByLabel('Nội dung tivi sảnh').selectOption('landscape');
+  await expect.poll(async () => (await canvas.screenshot()).equals(welcome)).toBe(false);
+  const landscape = await canvas.screenshot();
+  await page.getByRole('button', { name: 'Tắt tivi sảnh', exact: true }).click();
+  await expect(page.locator('#reception-tv-power')).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(async () => (await canvas.screenshot()).equals(landscape)).toBe(false);
+  await page.getByLabel('Nội dung tivi sảnh').selectOption('welcome');
+  await expect(page.locator('#reception-tv-power')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Chuyển động: tắt', exact: true }).click();
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Chuyển động: bật', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByLabel('Nội dung tivi sảnh')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

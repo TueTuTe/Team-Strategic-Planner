@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { receptionBridge, receptionBridgeHeight, receptionSofa, receptionDesk, receptionGuestEntrance } from './reception-layout.js';
 import { buildManekiNeko } from './maneki-neko.js';
+import { buildReceptionTV } from './reception-tv.js';
 
 export function buildReception({ scene, box, cylinder, sphere, mat, textures }) {
   const lobby = new THREE.Group(); lobby.name = 'japanese-reception'; scene.add(lobby);
@@ -173,6 +174,7 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   ctx.font = '24px sans-serif'; ctx.fillText('RECEPTION  ·  WELCOME', 512, 201);
   const texture = new THREE.CanvasTexture(artCanvas); texture.colorSpace = THREE.SRGBColorSpace; textures.receptionSign = texture;
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, .7), new THREE.MeshStandardMaterial({ map: texture, roughness: .9 })); sign.position.set(0, 2.23, -1.15); backdrop.add(sign);
+  const tv = buildReceptionTV({ parent: lobby, box, textures });
   // Tokonoma alcove: ink scroll, raised timber display and ikebana at the rear.
   box(4.8, .16, 1.18, 'walnut', -2, .31, -20.5, lobby);
   box(1.65, 2.35, .04, '#7a8064', -2, 2.27, -21.15, lobby);
@@ -194,9 +196,9 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   }
   const ripples = [];
   for (let i = 0; i < 24; i++) ripples.push(box(.35 + i % 4 * .12, .008, .025, '#b6d7bf', -9 + i % 12 * 1.5, .283, -8 - Math.floor(i / 12) * 2.3, lobby));
-  return time => {
+  return { tv, animate(time) {
     luckyCat.animate(time);
     ripples.forEach((line, i) => { line.position.x = -9 + ((i % 12 * 1.5 + time * .23) % 18.2); line.position.z = -8 - Math.floor(i / 12) * 2.3 + Math.sin(time * .8 + i) * .12; });
     lanterns.forEach((lantern, i) => { lantern.rotation.z = Math.sin(time * .75 + i) * .035; });
-  };
+  } };
 }

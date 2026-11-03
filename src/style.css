@@ -123,6 +123,8 @@
 .tv-controls>span{font-size:8px;letter-spacing:1.2px;color:#a08a68;margin-right:auto}
 .tv-controls>button{font-size:9px;color:#846c4b;border:1px solid #ded3be;border-radius:5px;padding:7px 11px;background:#fcf9f1}
 .tv-controls>button:hover{background:#e9dfc9}
+.reception-tv-controls>label{display:flex;align-items:center;gap:6px;font-size:9px;color:#846c4b}
+.reception-tv-controls select{font-size:10px;max-width:190px;border:1px solid #ded3be;border-radius:5px;padding:6px;background:#fcf9f1;color:#65583e}
 .garden-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #dbe0cc;padding:11px 18px;background:#eef1e5}
 .garden-controls>span{font-size:8px;letter-spacing:1.2px;color:#71815a}
 .garden-controls>button{font-size:10px;color:#536644;border:1px solid #bdc9a9;border-radius:5px;padding:8px 12px;background:#fafbf5}

@@ -5,7 +5,7 @@ test('exterior guest doorway is physically open and the counter and lucky cat fa
   const result = await page.evaluate(async () => {
     const THREE = await import('/node_modules/three/build/three.module.js');
     const { buildReception } = await import('/src/reception.js');
-    const { receptionGuestEntrance, receptionDesk } = await import('/src/reception-layout.js');
+    const { receptionGuestEntrance, receptionDesk, receptionSofa } = await import('/src/reception-layout.js');
     const scene = new THREE.Scene(), textures = {}, material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
     const add = (geometry, x, y, z, parent) => { const mesh = new THREE.Mesh(geometry, material); mesh.position.set(x, y, z); parent.add(mesh); return mesh; };
     buildReception({ scene, textures, mat: () => material,
@@ -24,7 +24,10 @@ test('exterior guest doorway is physically open and the counter and lucky cat fa
     const facing = obj => new THREE.Vector3(0,0,1).transformDirection(obj.matrixWorld).dot(towardGuest);
     const entrance = scene.getObjectByName('reception-main-entrance').getWorldPosition(new THREE.Vector3());
     const bridgeCenter = new THREE.Box3().setFromObject(scene.getObjectByName('office-reception-lantern-bridge')).getCenter(new THREE.Vector3());
-    const answer = { clearDoor, deskFacing: facing(desk), catFacing: facing(cat), entranceX: entrance.x, bridgeDistance: entrance.distanceTo(bridgeCenter) };
+    const tv = scene.getObjectByName('reception-tv-display'), tvPosition = tv.getWorldPosition(new THREE.Vector3());
+    const towardSofa = new THREE.Vector3(receptionSofa.x, tvPosition.y, receptionSofa.z).sub(tvPosition).normalize();
+    const tvFacing = new THREE.Vector3(0,0,1).transformDirection(tv.matrixWorld).dot(towardSofa);
+    const answer = { clearDoor, deskFacing: facing(desk), catFacing: facing(cat), entranceX: entrance.x, bridgeDistance: entrance.distanceTo(bridgeCenter), tvFacing, tvBehindDesk: tvPosition.x > desk.position.x + 1.3 };
     scene.traverse(obj => obj.geometry?.dispose()); Object.values(textures).forEach(t=>t.dispose()); material.dispose();
     return answer;
   });
@@ -33,4 +36,6 @@ test('exterior guest doorway is physically open and the counter and lucky cat fa
   expect(result.deskFacing).toBeGreaterThan(.95);
   expect(result.catFacing).toBeGreaterThan(.95);
   expect(result.bridgeDistance).toBeGreaterThan(8);
+  expect(result.tvFacing).toBeGreaterThan(.9);
+  expect(result.tvBehindDesk).toBe(true);
 });

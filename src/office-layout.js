@@ -4,12 +4,14 @@ import { buildJapaneseGarden } from './japanese-garden.js';
 import { buildIzakaya } from './izakaya.js';
 import { buildReception } from './reception.js';
 import { officeTV } from './office-tv.js';
+import { receptionTV } from './reception-layout.js';
 
 export const officeZones = {
   overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Sảnh tiếp đón · Vườn Nhật · Izakaya', target: [4.5, .9, -6], offset: [35, 33, 40] },
   reception: { label: 'Sảnh tiếp đón', detail: 'Cửa khách phía ngoài bên trái · Quầy hướng ra cửa · Sofa cong phía trong', target: [-.5, 1, -16.6], offset: [-14, 15, 16] },
   guestEntrance: { label: 'Cửa đón khách', detail: 'Sân ngoài → Cửa chính bên trái → Quầy lễ tân → Khu chờ', target: [-8.8, 1.2, -14.25], offset: [-7, 4.8, 5] },
   frontDesk: { label: 'Quầy lễ tân', detail: 'Quầy hướng ra cửa chính bên ngoài · Mèo thần tài vẫy tay', target: [-5.65, 1.35, -14.6], offset: [-3, 1.8, 4] },
+  receptionTV: { label: 'Tivi sảnh', detail: 'Tivi gắn mặt vách hướng về sofa · Lời chào Atelier / Tranh phong cảnh', target: [...receptionTV.position], offset: [6, 2.5, -.4] },
   receptionBridge: { label: 'Cầu đèn lồng', detail: 'Lối nội bộ Văn phòng ↔ Sảnh · Cầu gỗ treo đèn lồng trên suối', target: [.3, 1, -9.4], offset: [7, 13, 9] },
   garden: { label: 'Vườn Nhật', detail: 'Hoa anh đào · Thác nước · Hồ koi · Ghế nghỉ bên hồ', target: [15.5, 1, -.2], offset: [10, 12, 14] },
   izakaya: { label: 'Izakaya', detail: 'Bar sau vườn · Cầu gỗ qua suối · Đèn lồng & quầy sake', target: [15.6, 1.25, -16], offset: [10, 11, 15] },
@@ -240,6 +242,6 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   const seats = { strategy: { x: -5.65, z: -5.95, rotation: Math.PI }, ...Object.fromEntries(studioSeats.map(seat => [seat.id, seat])) };
   const animateGarden = buildJapaneseGarden({ scene, box, cylinder, sphere, mat, textures });
   const animateIzakaya = buildIzakaya({ scene, box, cylinder, sphere, mat, textures });
-  const animateReception = buildReception({ scene, box, cylinder, sphere, mat, textures });
-  return { seats, monitorMeshes, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); animateReception(time); } };
+  const reception = buildReception({ scene, box, cylinder, sphere, mat, textures });
+  return { seats, monitorMeshes, receptionTV: reception.tv, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); reception.animate(time); } };
 }

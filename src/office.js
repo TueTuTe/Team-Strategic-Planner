@@ -69,7 +69,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const obj = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), mat(color));
     obj.position.set(x, y, z); obj.castShadow = true; parent.add(obj); return obj;
   }
-  const { seats, animateNature } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const { seats, animateNature, receptionTV } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
   const tvLayer = tvElement ? mountTVScreen(container, scene, camera, tvElement, onTVVisibility) : null;
   const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
   const agents = [];
@@ -201,7 +201,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   animate(performance.now());
   function focusZone(id) {
     const zone = officeZones[id] || officeZones.overview;
-    controls.minDistance = id === 'tv' ? 6 : id === 'frontDesk' ? 5 : 9;
+    controls.minDistance = ['tv', 'receptionTV'].includes(id) ? 6 : id === 'frontDesk' ? 5 : 9;
     controls.maxPolarAngle = id === 'tv' ? Math.PI / 2 : Math.PI / 2.5;
     const fixture = scene.getObjectByName('studio-overhead-fixture'); if (fixture) fixture.visible = id !== 'tv';
     controls.target.set(...zone.target);
@@ -210,6 +210,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   }
   return {
     focusZone,
+    toggleReceptionTV() { const state = receptionTV.toggle(); needsRender = true; return state; },
+    setReceptionTVContent(value) { const state = receptionTV.setContent(value); needsRender = true; return state; },
     gardenBreak() { if (!motion) return []; const ids = navigation.requestGardenBreak(); needsRender = true; return ids; },
     barBreak() { if (!motion) return []; const ids = navigation.requestBarBreak(); needsRender = true; return ids; },
     receptionVisit() { if (!motion) return []; const ids = navigation.requestReception(); needsRender = true; return ids; },

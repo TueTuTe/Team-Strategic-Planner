@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('renders interactive 3D office and opens role profiles', async ({ page }) => {
+  test.setTimeout(60000); // Software WebGL captures every zone of the expanded campus.
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => {
     if (window.top !== window) return;

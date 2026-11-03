@@ -101,3 +101,9 @@ Video được giữ trong iframe gốc và không sao chép vào WebGL texture.
 Tab **Vườn Nhật** đưa camera ra khu vườn liền kề với ba cây anh đào, cánh hoa rơi, thác nước chuyển động, bảy cá koi bơi và ghế nghỉ ngắm hồ. **Toàn cảnh** cho thấy cả văn phòng lẫn vườn.
 
 Nhấn **Ra vườn nghỉ** để tối đa hai nhân viên rảnh đi theo lối gỗ và đường đá ra ghế bên hồ. Họ ngồi nghỉ, trò chuyện bằng bong bóng chữ rồi quay về bàn. Khi nhận việc mới, họ quay lại bàn trước khi bắt đầu làm. Nhân viên đang có task không tham gia nghỉ; người rảnh cũng tự ghé vườn trong chu kỳ sinh hoạt. Bật **Chuyển động** để sử dụng việc đi lại và hiệu ứng nước, cá, hoa.
+
+## Izakaya sau vườn
+
+Quán bar nằm phía sau khu vườn, có quầy gỗ, ghế cao, kệ sake, đèn lồng đỏ, rèm noren và bàn nhỏ. Một nhánh nước thông từ hồ koi ra con suối sau vườn; cầu gỗ cong bắc qua suối là lối đi duy nhất từ vườn sang quán. Tab **Izakaya** xem gần quầy; **Cầu qua suối** xem lối nối và dòng nước.
+
+Nhấn **Tan ca · Sang Izakaya** để bắt đầu giờ nghỉ theo lựa chọn của bạn, không phụ thuộc đồng hồ máy. Tối đa hai người rảnh đi bộ qua vườn, lên cầu rồi ngồi tại quầy và trò chuyện bằng bong bóng chữ. Trong giờ nghỉ này, nhân viên đã xong việc có thể tự sang quán. Nhân viên có task đang mở tiếp tục ở lại làm việc; nhận việc mới khi đang nghỉ sẽ quay về bàn trước khi bắt đầu xử lý. **Về văn phòng** kết thúc giờ nghỉ và gọi mọi người quay lại. Nút **Chuyển động** vẫn áp dụng cho cả khu bar và suối.

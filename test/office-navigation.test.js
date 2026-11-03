@@ -45,3 +45,28 @@ test('busy staff stay at their desks and a single free staff member can rest the
   nav.setBusy('creative', false); assert.deepEqual(nav.requestGardenBreak(), ['creative']);
   nav.quietFor(150); step(nav, 70); assert.equal(nav.atDesk('creative'), true);
 });
+test('Izakaya is only reached across the raised bridge and busy staff do not join after hours', () => {
+  const path = walkRoute('creative', 'barSeatA');
+  for (const point of ['gardenRear', 'bridgeSouth', 'bridgeRise', 'bridgeCrest', 'bridgeFall', 'bridgeNorth', 'barEntry']) assert.ok(path.includes(point));
+  assert.ok(walkNodes.bridgeCrest[1] > walkNodes.bridgeSouth[1] + .6);
+  const messages = [], nav = new OfficeNavigation({ seats, onAmbient: (id, text) => messages.push(text) });
+  nav.setBusy('strategy', true);
+  const resting = nav.requestBarBreak(); assert.equal(resting.length, 2); assert.ok(!resting.includes('strategy')); assert.equal(nav.afterHours, true);
+  for (let i = 0; i < 900 && nav.actors.get(resting[1]).pose !== 'barstool'; i++) nav.step(.1);
+  step(nav, 4);
+  for (const id of resting) { assert.equal(nav.actors.get(id).pose, 'barstool'); assert.equal(nav.actors.get(id).heading, 0); }
+  assert.ok(messages.some(text => text.includes('Izakaya'))); assert.equal(nav.atDesk('strategy'), true);
+  let started = false; nav.setBusy(resting[0], true); nav.home(resting[0], () => { started = true; });
+  assert.equal(started, false); nav.endAfterHours(); assert.equal(nav.afterHours, false);
+  step(nav, 50); assert.equal(started, true); assert.equal(nav.atDesk(resting[0]), true);
+});
+test('a single free employee rests at the bar, and cancelling mid-bridge returns them continuously', () => {
+  const nav = new OfficeNavigation({ seats });
+  for (const id of ids) nav.setBusy(id, true);
+  assert.deepEqual(nav.requestBarBreak(), []); assert.equal(nav.afterHours, false);
+  nav.setBusy('creative', false); assert.deepEqual(nav.requestBarBreak(), ['creative']);
+  for (let i = 0; i < 900 && nav.actors.get('creative').position[2] > -9; i++) nav.step(.1);
+  const before = [...nav.actors.get('creative').position]; nav.endAfterHours(); nav.step(.1);
+  assert.ok(Math.hypot(...before.map((v, i) => v - nav.actors.get('creative').position[i])) <= .181);
+  nav.quietFor(150); step(nav, 60); assert.equal(nav.atDesk('creative'), true);
+});

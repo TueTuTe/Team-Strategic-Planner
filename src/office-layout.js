@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import { buildNatureCorner } from './nature-corner.js';
 import { buildJapaneseGarden } from './japanese-garden.js';
+import { buildIzakaya } from './izakaya.js';
 import { officeTV } from './office-tv.js';
 
 export const officeZones = {
-  overview: { label: 'Toàn cảnh', detail: 'Văn phòng & vườn Nhật · 5 nhân viên · 10 màn hình', target: [6.3, .9, 0], offset: [27, 25, 31] },
+  overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Vườn Nhật · Cầu suối · Izakaya', target: [6.3, .9, -6], offset: [35, 33, 40] },
   garden: { label: 'Vườn Nhật', detail: 'Hoa anh đào · Thác nước · Hồ koi · Ghế nghỉ bên hồ', target: [15.5, 1, -.2], offset: [10, 12, 14] },
+  izakaya: { label: 'Izakaya', detail: 'Bar sau vườn · Cầu gỗ qua suối · Đèn lồng & quầy sake', target: [15.6, 1.25, -16], offset: [10, 11, 15] },
+  bridge: { label: 'Cầu qua suối', detail: 'Lối từ vườn sang Izakaya · Suối nối hồ koi', target: [15.2, .6, -8.6], offset: [10, 12, 13] },
   strategy: { label: 'Góc riêng', detail: 'Góc Strategy · Bể cá & terrarium · Lối vào mở', target: [-5.5, 1, -4.2], offset: [7.5, 7, 9] },
   studio: { label: 'Khu làm việc', detail: 'Studio · 4 chỗ làm việc, mỗi người 2 màn hình', target: [-4.8, .9, 2.3], offset: [9, 9, 11] },
   meeting: { label: 'Phòng họp', detail: 'Phòng họp · 8 chỗ · Vách kính và cửa mở', target: [5, 1, -3.7], offset: [9, 8.5, 10] },
@@ -226,5 +229,6 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   }
   const seats = { strategy: { x: -5.65, z: -5.95, rotation: Math.PI }, ...Object.fromEntries(studioSeats.map(seat => [seat.id, seat])) };
   const animateGarden = buildJapaneseGarden({ scene, box, cylinder, sphere, mat, textures });
-  return { seats, monitorMeshes, animateNature(time) { animateNature(time); animateGarden(time); } };
+  const animateIzakaya = buildIzakaya({ scene, box, cylinder, sphere, mat, textures });
+  return { seats, monitorMeshes, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); } };
 }

@@ -17,12 +17,14 @@ export function buildJapaneseGarden({ scene, box, cylinder, sphere, mat, texture
   const bed = cylinder(1, 1, .13, '#3f786d', 0, .06, 0, pond); bed.scale.set(3.7, 1, 3.75);
   const waterMaterial = new THREE.MeshStandardMaterial({ color: '#88c4ad', transparent: true, opacity: .3, depthWrite: false, roughness: .2, metalness: .12 });
   const water = new THREE.Mesh(new THREE.CircleGeometry(1, 72), waterMaterial); water.rotation.x = -Math.PI / 2; water.scale.set(3.65, 3.7, 1); water.position.y = .27; pond.add(water);
-  const stoneGeometry = new THREE.IcosahedronGeometry(1, 1), stones = new THREE.InstancedMesh(stoneGeometry, mat('#939783'), 44);
+  const stoneGeometry = new THREE.IcosahedronGeometry(1, 1), stones = new THREE.InstancedMesh(stoneGeometry, mat('#939783'), 40);
   const dummy = new THREE.Object3D();
+  let stoneIndex = 0;
   for (let i = 0; i < 44; i++) {
+    if (i >= 37 && i <= 40) continue; // Open outlet to the stream behind the garden.
     const a = i / 44 * Math.PI * 2;
     dummy.position.set(Math.cos(a) * 3.72, .22 + (i % 3) * .035, Math.sin(a) * 3.78);
-    dummy.rotation.set(i * .6, i * 1.7, .2); dummy.scale.set(.4 + (i % 3) * .08, .29 + (i % 2) * .1, .33 + (i % 4) * .04); dummy.updateMatrix(); stones.setMatrixAt(i, dummy.matrix);
+    dummy.rotation.set(i * .6, i * 1.7, .2); dummy.scale.set(.4 + (i % 3) * .08, .29 + (i % 2) * .1, .33 + (i % 4) * .04); dummy.updateMatrix(); stones.setMatrixAt(stoneIndex++, dummy.matrix);
   }
   stones.castShadow = true; stones.receiveShadow = true; pond.add(stones);
   const koi = [];

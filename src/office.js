@@ -32,7 +32,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   sunlight.target.position.set(6, 0, 0); scene.add(sunlight.target);
   sunlight.castShadow = true;
   sunlight.shadow.mapSize.set(2048, 2048);
-  Object.assign(sunlight.shadow.camera, { left: -28, right: 28, top: 24, bottom: -24, far: 90 });
+  Object.assign(sunlight.shadow.camera, { left: -35, right: 35, top: 32, bottom: -32, far: 100 });
   sunlight.shadow.bias = -.001;
   sunlight.shadow.normalBias = .025;
   scene.add(sunlight);
@@ -129,7 +129,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     if (motion) { navigation.step(delta); animateNature?.(time); }
     agents.forEach((a, index) => {
       const phase = time + index * 1.7;
-      const state = navigation.actors.get(a.id), walking = state.pose === 'walking', standing = !['seated', 'bench'].includes(state.pose);
+      const state = navigation.actors.get(a.id), walking = state.pose === 'walking', standing = !['seated', 'bench', 'barstool'].includes(state.pose);
       const [x, y, z] = state.position;
       a.g.position.set(x, y + (standing ? .22 : 0) + (motion ? walking ? Math.abs(Math.sin(phase * 9)) * .035 : Math.sin(phase * 1.6) * .008 : 0), z);
       const turn = Math.atan2(Math.sin(state.heading - a.g.rotation.y), Math.cos(state.heading - a.g.rotation.y));
@@ -137,8 +137,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
       a.sittingLegs.visible = !standing;
       a.legs.forEach((leg, side) => { leg.visible = standing; leg.rotation.x = motion && walking ? Math.sin(phase * 9 + side * Math.PI) * .55 : 0; });
       a.anchor.set(x, a.g.position.y + 1.95, z); a.ring.position.set(x, y + .09, z);
-      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : state.pose === 'bench' ? 'resting' : standing ? 'social' : 'desk';
-      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : state.pose === 'bench' ? 'Nghỉ bên hồ koi' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
+      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : state.pose === 'barstool' ? 'izakaya' : state.pose === 'bench' ? 'resting' : standing ? 'social' : 'desk';
+      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : state.pose === 'barstool' ? 'Tan ca tại Izakaya' : state.pose === 'bench' ? 'Nghỉ bên hồ koi' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
       const reacting = a.reactionUntil > now;
       a.head.rotation.y = motion ? Math.sin(phase * .65) * .09 : 0;
       a.head.rotation.x = motion ? a.working ? .08 + Math.sin(phase * 3) * .035 : reacting ? Math.sin(phase * 5) * .09 : 0 : 0;
@@ -211,6 +211,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   return {
     focusZone,
     gardenBreak() { if (!motion) return []; const ids = navigation.requestGardenBreak(); needsRender = true; return ids; },
+    barBreak() { if (!motion) return []; const ids = navigation.requestBarBreak(); needsRender = true; return ids; },
+    endAfterHours() { navigation.endAfterHours(); if (!motion) navigation.freezeAtDesks(); needsRender = true; },
     setMotion(enabled) { motion = enabled; if (!motion) navigation.freezeAtDesks(); lastTime = performance.now(); needsRender = true; },
     isAtDesk(id) { return navigation.atDesk(id); },
     returnToDesk(id, callback) { navigation.home(id, callback); if (!motion) navigation.freezeAtDesks(); needsRender = true; },

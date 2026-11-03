@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OfficeNavigation, walkRoute, walkNodes } from '../src/office-navigation.js';
+import { receptionDesk, receptionSofa } from '../src/reception-layout.js';
 
 const ids = ['strategy', 'insight', 'creative', 'media', 'account'];
 const seats = Object.fromEntries(ids.map(id => [id, { x: walkNodes[id][0], z: walkNodes[id][2], rotation: id === 'strategy' ? Math.PI : 0 }]));
@@ -82,4 +83,18 @@ test('reception uses its own bridge and the open office doorway, seats staff and
   step(nav, 4); assert.ok(spoken.some(text => text.includes('sảnh tiếp đón')));
   let ready = false; nav.setBusy('account', true); nav.home('account', () => { ready = true; });
   assert.equal(ready, false); nav.quietFor(100); step(nav, 45); assert.equal(ready, true); assert.equal(nav.atDesk('account'), true);
+});
+test('front desk leaves the entry aisle open and the inner sofa connects to the bar through the office and garden', () => {
+  const route = walkRoute('receptionEntry', 'receptionSeatA');
+  assert.ok(receptionSofa.z < receptionDesk.z - 3);
+  // A person has a 0.3-unit shoulder radius; no route segment may cut through the desk.
+  const left = receptionDesk.x - receptionDesk.width / 2 - .3, right = receptionDesk.x + receptionDesk.width / 2 + .3;
+  const near = receptionDesk.z + receptionDesk.depth / 2 + .3, far = receptionDesk.z - receptionDesk.depth / 2 - .3;
+  for (let i = 1; i < route.length; i++) for (let step = 0; step <= 20; step++) {
+    const t = step / 20, a = walkNodes[route[i - 1]], b = walkNodes[route[i]];
+    const x = a[0] + (b[0] - a[0]) * t, z = a[2] + (b[2] - a[2]) * t;
+    assert.ok(!(x > left && x < right && z > far && z < near));
+  }
+  const barRoute = walkRoute('receptionSeatA', 'barSeatA');
+  for (const point of ['officeReceptionDoor', 'gardenGate', 'bridgeCrest']) assert.ok(barRoute.includes(point));
 });

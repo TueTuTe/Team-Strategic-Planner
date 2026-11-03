@@ -7,7 +7,8 @@ import { officeTV } from './office-tv.js';
 
 export const officeZones = {
   overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Sảnh tiếp đón · Vườn Nhật · Izakaya', target: [6.3, .9, -6], offset: [35, 33, 40] },
-  reception: { label: 'Sảnh tiếp đón', detail: 'Lễ tân kiểu Nhật · Sofa cong · Bàn trà chờ khách', target: [-.3, 1, -16.2], offset: [11, 12, 15] },
+  reception: { label: 'Sảnh tiếp đón', detail: 'Sảnh riêng kiểu Nhật · Quầy tại cửa · Sofa cong phía trong', target: [-.8, 1, -16.7], offset: [11, 12, 15] },
+  frontDesk: { label: 'Quầy lễ tân', detail: 'Lối vào từ cầu · Quầy gỗ kumiko · Mèo thần tài vẫy tay', target: [3.05, 1.35, -13.9], offset: [4.8, 4.2, 6.8] },
   receptionBridge: { label: 'Cầu đèn lồng', detail: 'Văn phòng ↔ Sảnh tiếp đón · Cầu gỗ treo đèn lồng trên suối', target: [.3, 1, -9.4], offset: [7, 13, 9] },
   garden: { label: 'Vườn Nhật', detail: 'Hoa anh đào · Thác nước · Hồ koi · Ghế nghỉ bên hồ', target: [15.5, 1, -.2], offset: [10, 12, 14] },
   izakaya: { label: 'Izakaya', detail: 'Bar sau vườn · Cầu gỗ qua suối · Đèn lồng & quầy sake', target: [15.6, 1.25, -16], offset: [10, 11, 15] },

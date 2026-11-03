@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { receptionBridge, receptionBridgeHeight, receptionSofa } from './reception-layout.js';
+import { receptionBridge, receptionBridgeHeight, receptionSofa, receptionDesk } from './reception-layout.js';
+import { buildManekiNeko } from './maneki-neko.js';
 
 export function buildReception({ scene, box, cylinder, sphere, mat, textures }) {
   const lobby = new THREE.Group(); lobby.name = 'japanese-reception'; scene.add(lobby);
@@ -54,13 +55,39 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   }
   for (const z of [-7, -11.8]) box(2.4, .12, .15, 'walnut', .3, 3.61, z, bridge);
 
-  // The remaining rear quadrant becomes a spacious Japanese reception pavilion.
-  box(18.4, .38, 10, 'walnut', 0, -.03, -16.6, lobby);
-  for (let i = 0; i < 40; i++) box(.44, .07, 9.8, i % 2 ? 'floor0' : 'floor2', -8.78 + i * .45, .195, -16.6, lobby);
-  box(18, 3.6, .16, '#e0d3b9', 0, 1.99, -21.4, lobby);
-  for (const x of [-9, 9]) for (const z of [-12, -21.35]) box(.18, 3.9, .18, 'walnut', x, 2.08, z, lobby);
-  for (const z of [-12, -21.35]) box(18.3, .2, .22, 'walnut', 0, 4.06, z, lobby);
-  for (const x of [-9, 9]) box(.2, .2, 9.55, 'walnut', x, 4.06, -16.65, lobby);
+  // Separate buildings: a narrow continuation of the stream and a closed side wall
+  // replace the former edge-to-edge floor shared visually with the Izakaya.
+  box(17.5, .38, 10, 'walnut', -.45, -.03, -16.6, lobby);
+  for (let i = 0; i < 38; i++) box(.44, .07, 9.8, i % 2 ? 'floor0' : 'floor2', -8.78 + i * .45, .195, -16.6, lobby);
+  box(17.2, 3.6, .16, '#e0d3b9', -.45, 1.99, -21.4, lobby);
+  for (const x of [-9, 8.1]) for (const z of [-12, -21.35]) box(.18, 3.9, .18, 'walnut', x, 2.08, z, lobby);
+  for (const z of [-12, -21.35]) box(17.5, .2, .22, 'walnut', -.45, 4.06, z, lobby);
+  for (const x of [-9, 8.1]) box(.2, .2, 9.55, 'walnut', x, 4.06, -16.65, lobby);
+  const separation = new THREE.Group(); separation.name = 'reception-izakaya-separation'; lobby.add(separation);
+  box(.95, .38, 10, 'walnut', 8.75, -.23, -16.6, separation);
+  box(.95, .08, 10, '#487f75', 8.75, .14, -16.6, separation);
+  const sideStream = new THREE.Mesh(new THREE.PlaneGeometry(.95, 10), water.material); sideStream.rotation.x = -Math.PI / 2; sideStream.position.set(8.75, .27, -16.6); separation.add(sideStream);
+  box(.13, 3.35, 9.35, '#d8c9aa', 8.14, 1.94, -16.65, separation);
+  box(.16, .65, 9.45, 'walnut', 8.05, .58, -16.65, separation);
+  for (let i = 0; i < 28; i++) box(.09, 3.3, .06, 'oak', 8.04, 1.92, -12.1 - i * .34, separation);
+  for (const z of [-12.2, -15.5, -18.8, -21.1]) {
+    const rock = sphere(.24, '#929580', 8.52, .32, z, separation); rock.scale.set(.6, .65, 1);
+  }
+  // Deep eaves, plaster over timber wainscot and joinery give the room a ryokan feel.
+  for (const z of [-12, -21.35]) {
+    box(17.7, .09, .55, 'walnut', -.45, 4.18, z, lobby);
+    for (let i = 0; i < 44; i++) box(.075, .23, .22, 'oak', -8.8 + i * .39, 3.86, z, lobby);
+  }
+  box(17, .65, .09, 'walnut', -.45, .57, -21.26, lobby);
+  box(17.1, .07, .16, 'oak', -.45, .94, -21.21, lobby);
+  // The bridge-side entrance is a genkan threshold with a split indigo noren.
+  const entry = new THREE.Group(); entry.name = 'reception-main-entrance'; lobby.add(entry);
+  box(2.1, .045, 1.38, '#b9b6a1', .3, .252, -12.65, entry);
+  box(2.25, .065, .14, 'oak', .3, .26, -13.4, entry);
+  for (const x of [-.82, 1.42]) box(.12, 2.85, .18, 'walnut', x, 1.68, -12.0, entry);
+  box(2.6, .18, .25, 'oak', .3, 3.12, -12, entry);
+  for (let i = 0; i < 3; i++) box(.68, .61, .035, '#354e56', -.41 + i * .71, 2.77, -11.98, entry);
+  const crest = new THREE.Mesh(new THREE.TorusGeometry(.16, .014, 5, 40, Math.PI * 1.88), mat('#e6dfc5')); crest.position.set(.3, 2.78, -11.95); crest.rotation.z = .18; entry.add(crest);
   // Shoji and timber screens leave the entry and center aisle open.
   for (let panel = 0; panel < 4; panel++) {
     const z = -13.35 - panel * 2.25;
@@ -69,7 +96,11 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
     for (let row = 0; row < 8; row++) box(.06, .035, 2.17, 'oak', -8.91, .5 + row * .4, z, lobby);
     for (let col = 0; col < 3; col++) box(.06, 3.13, .035, 'oak', -8.9, 1.95, z - .7 + col * .7, lobby);
   }
-  for (let i = 0; i < 21; i++) box(.075, 2.9, .09, 'oak', 1.55 + i * .34, 1.8, -21.18, lobby);
+  // A tatami waiting area sits deeper inside, away from the front desk and doorway.
+  for (let col = 0; col < 4; col++) for (let row = 0; row < 2; row++) {
+    box(1.59, .045, 2.99, 'tatami', -6.55 + col * 1.63, .255, -19.03 + row * 3.05, lobby);
+    for (const dx of [-.8, .8]) box(.035, .048, 3.0, '#68775d', -6.55 + col * 1.63 + dx, .257, -19.03 + row * 3.05, lobby);
+  }
   // Smooth annular shapes make a continuous curved sofa, open toward the entry aisle.
   const { x: sx, z: sz, start, end } = receptionSofa;
   function curvedSofaPart(inner, outer, depth, top, material) {
@@ -85,45 +116,71 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
     const cushion = sphere(.29, '#8c987c', sx + Math.cos(angle) * 2.66, 1.1, sz + Math.sin(angle) * 2.66, lobby);
     cushion.scale.set(1, .8, .42); cushion.rotation.y = Math.PI / 2 - angle;
   }
-  const rug = cylinder(1, 1, .025, '#b7b69a', sx, .245, sz, lobby); rug.scale.set(1.85, 1, 1.25);
   const table = cylinder(1, 1, .1, 'oak', sx, .7, sz, lobby); table.scale.set(1.3, 1, .78);
   for (const dx of [-.7, .7]) box(.12, .4, .12, 'walnut', sx + dx, .48, sz, lobby);
   const tray = cylinder(.45, .45, .03, '#5b6651', sx, .77, sz, lobby); tray.scale.z = .8;
   const pot = sphere(.14, '#596b5e', sx, .9, sz, lobby); pot.scale.y = .8;
   cylinder(.12, .1, .025, '#4d5e50', sx, 1.025, sz, lobby);
   for (const dx of [-.3, .3]) cylinder(.07, .06, .1, '#f0e1c0', sx + dx, .84, sz + .13, lobby);
-  // Slatted reception desk, tablet, visitor book and warm lamp.
-  box(5.1, 1.01, 1.08, 'walnut', 4.55, .79, -18.45, lobby);
-  box(5.35, .12, 1.27, 'oak', 4.55, 1.36, -18.45, lobby);
-  for (let i = 0; i < 31; i++) box(.035, .9, .04, 'oak', 2.1 + i * .163, .8, -17.89, lobby);
-  box(.43, .025, .31, '#e2dbc2', 3.1, 1.44, -18.25, lobby);
-  const tablet = box(.55, .37, .045, '#35463d', 4.6, 1.64, -18.33, lobby); tablet.rotation.x = -.22;
-  cylinder(.12, .12, .025, '#a18d65', 6.3, 1.44, -18.45, lobby);
-  cylinder(.02, .02, .36, '#a18d65', 6.3, 1.62, -18.45, lobby);
-  cylinder(.23, .27, .31, 'lantern', 6.3, 1.89, -18.45, lobby);
+  // A compact hinoki counter welcomes visitors immediately to the right of the entrance.
+  const desk = new THREE.Group(); desk.name = 'japanese-front-desk'; desk.position.set(receptionDesk.x, 0, receptionDesk.z); lobby.add(desk);
+  box(4.62, 1.02, 1.08, 'walnut', 0, .79, 0, desk);
+  box(4.4, .75, .055, 'paper', 0, .82, .572, desk);
+  for (const x of [-2.27, -.02, 2.27]) box(.13, 1.07, .16, 'oak', x, .82, .62, desk);
+  for (const y of [.33, 1.27]) box(4.7, .1, .17, 'oak', 0, y, .62, desk);
+  // Kumiko diamonds, rather than generic vertical bar slats, fill the two front panels.
+  for (const panelX of [-1.13, 1.13]) for (let i = 0; i < 6; i++) {
+    const x = panelX - .78 + i * .31;
+    for (const side of [-1, 1]) for (const y of [.6, 1.01]) {
+      const lattice = box(.026, .54, .035, 'oak', x, y, .615, desk); lattice.rotation.z = side * .63;
+    }
+  }
+  const counterShape = new THREE.Shape();
+  counterShape.moveTo(-2.35, -.63); counterShape.lineTo(2.29, -.63); counterShape.quadraticCurveTo(2.51, -.63, 2.51, -.4);
+  counterShape.lineTo(2.51, .4); counterShape.quadraticCurveTo(2.51, .66, 2.25, .68); counterShape.lineTo(-2.35, .68);
+  counterShape.quadraticCurveTo(-2.52, .63, -2.48, .42); counterShape.lineTo(-2.49, -.4); counterShape.quadraticCurveTo(-2.51, -.63, -2.35, -.63);
+  const counter = new THREE.Mesh(new THREE.ExtrudeGeometry(counterShape, { depth: .14, bevelEnabled: true, bevelSize: .025, bevelThickness: .025, bevelSegments: 2, curveSegments: 16 }), mat('oak'));
+  counter.rotation.x = Math.PI / 2; counter.position.y = 1.42; counter.castShadow = true; desk.add(counter);
+  box(.43, .025, .31, '#e2dbc2', -.5, 1.465, .19, desk);
+  const tablet = box(.46, .32, .04, '#35463d', .45, 1.64, -.12, desk); tablet.rotation.x = -.22;
+  cylinder(.12, .12, .025, '#a18d65', 1.85, 1.46, -.05, desk);
+  cylinder(.02, .02, .3, '#a18d65', 1.85, 1.62, -.05, desk);
+  cylinder(.19, .24, .28, 'lantern', 1.85, 1.87, -.05, desk);
+  const luckyCat = buildManekiNeko({ parent: desk, box, cylinder, sphere, mat }); luckyCat.cat.position.set(-1.62, 1.45, .04);
+  // A freestanding shoji backdrop separates the service counter from the quiet inner hall.
+  box(5.35, 2.4, .055, 'paper', 3.65, 1.57, -15.25, lobby);
+  for (const x of [1, 3.65, 6.3]) box(.1, 2.55, .13, 'walnut', x, 1.6, -15.22, lobby);
+  for (let i = 0; i < 8; i++) box(5.35, .035, .07, 'oak', 3.65, .43 + i * .32, -15.19, lobby);
+  for (let i = 0; i < 10; i++) box(.035, 2.4, .07, 'oak', 1.2 + i * .54, 1.57, -15.18, lobby);
   const artCanvas = document.createElement('canvas'); artCanvas.width = 1024; artCanvas.height = 256;
   const ctx = artCanvas.getContext('2d'); ctx.fillStyle = '#dcd2b8'; ctx.fillRect(0, 0, 1024, 256);
   ctx.fillStyle = '#415746'; ctx.textAlign = 'center'; ctx.font = '600 104px serif'; ctx.fillText('ATELIER', 512, 135);
-  ctx.font = '24px sans-serif'; ctx.fillText('WELCOME  ·  STRATEGY, TOGETHER', 512, 201);
+  ctx.font = '24px sans-serif'; ctx.fillText('RECEPTION  ·  WELCOME', 512, 201);
   const texture = new THREE.CanvasTexture(artCanvas); texture.colorSpace = THREE.SRGBColorSpace; textures.receptionSign = texture;
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), new THREE.MeshStandardMaterial({ map: texture, roughness: .9 })); sign.position.set(4.7, 2.75, -21.04); lobby.add(sign);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, .7), new THREE.MeshStandardMaterial({ map: texture, roughness: .9 })); sign.position.set(3.65, 2.23, -15.1); lobby.add(sign);
+  // Tokonoma alcove: ink scroll, raised timber display and ikebana at the rear.
+  box(4.8, .16, 1.18, 'walnut', 3.9, .31, -20.5, lobby);
+  box(1.65, 2.35, .04, '#7a8064', 3.9, 2.27, -21.15, lobby);
+  box(1.4, 1.95, .045, 'artwork', 3.9, 2.28, -21.12, lobby);
+  for (const y of [1.07, 3.47]) cylinder(.04, .04, 1.75, 'walnut', 3.9, y, -21.08, lobby).rotation.z = Math.PI / 2;
   // Ikebana, leafy plants and a stone arrangement complete the quiet waiting area.
-  for (const [x, z] of [[-7.6, -19.8], [7.9, -13.2]]) {
+  for (const [x, z] of [[-7.6, -19.8], [7.1, -12.8]]) {
     cylinder(.37, .3, .5, '#68745d', x, .5, z, lobby);
     for (let i = 0; i < 6; i++) {
       beam(new THREE.Vector3(x, .72, z), new THREE.Vector3(x + Math.cos(i * 2.4) * .4, 1.5 + i % 3 * .25, z + Math.sin(i * 2.4) * .35), .018, '#59694c', lobby);
       const leaf = sphere(.25, '#75835e', x + Math.cos(i * 2.4) * .4, 1.5 + i % 3 * .25, z + Math.sin(i * 2.4) * .35, lobby); leaf.scale.set(1.4, .35, .8);
     }
   }
-  box(2.7, .3, .8, 'walnut', -4.8, .43, -20.4, lobby);
-  cylinder(.13, .18, .36, '#5f6f60', -4.8, .76, -20.4, lobby);
+  box(2.7, .3, .8, 'walnut', 3.9, .43, -20.4, lobby);
+  cylinder(.13, .18, .36, '#5f6f60', 3.9, .76, -20.4, lobby);
   for (let i = 0; i < 3; i++) {
-    beam(new THREE.Vector3(-4.8, .9, -20.4), new THREE.Vector3(-5.15 + i * .27, 1.7 + i % 2 * .2, -20.4), .012, '#725e45', lobby);
-    sphere(.12, '#e4bcc0', -5.15 + i * .27, 1.7 + i % 2 * .2, -20.4, lobby);
+    beam(new THREE.Vector3(3.9, .9, -20.4), new THREE.Vector3(3.55 + i * .27, 1.7 + i % 2 * .2, -20.4), .012, '#725e45', lobby);
+    sphere(.12, '#e4bcc0', 3.55 + i * .27, 1.7 + i % 2 * .2, -20.4, lobby);
   }
   const ripples = [];
   for (let i = 0; i < 24; i++) ripples.push(box(.35 + i % 4 * .12, .008, .025, '#b6d7bf', -9 + i % 12 * 1.5, .283, -8 - Math.floor(i / 12) * 2.3, lobby));
   return time => {
+    luckyCat.animate(time);
     ripples.forEach((line, i) => { line.position.x = -9 + ((i % 12 * 1.5 + time * .23) % 18.2); line.position.z = -8 - Math.floor(i / 12) * 2.3 + Math.sin(time * .8 + i) * .12; });
     lanterns.forEach((lantern, i) => { lantern.rotation.z = Math.sin(time * .75 + i) * .035; });
   };

@@ -1,4 +1,5 @@
 import { izakayaWalkNodes } from './izakaya-layout.js';
+import { receptionWalkNodes, receptionSeatHeadings } from './reception-layout.js';
 
 // Waypoints follow open aisles, steps and the arched garden bridge.
 export const walkNodes = {
@@ -13,6 +14,7 @@ export const walkNodes = {
   gardenPorch: [0, 0, 7.7], gardenGate: [10.7, 0, 7.7], gardenEntry: [10.7, .1, 5.9], gardenLane: [10.7, .1, 3.8],
   gardenWestB: [10.7, .1, 2.7], gardenWestA: [10.7, .1, 1.3], gardenBenchA: [11.7, .1, 1.3], gardenBenchB: [11.7, .1, 2.7],
   ...izakayaWalkNodes,
+  ...receptionWalkNodes,
 };
 const links = [
   ['north', 'meetingHall'], ['meetingHall', 'middle'], ['middle', 'south'], ['north', 'strategyDoor'], ['strategyDoor', 'strategyAisle'], ['strategyAisle', 'strategy'],
@@ -26,6 +28,10 @@ const links = [
   ['gardenWestA', 'gardenRear'], ['gardenRear', 'gardenBridgePath'], ['gardenBridgePath', 'bridgeSouth'],
   ['bridgeSouth', 'bridgeRise'], ['bridgeRise', 'bridgeCrest'], ['bridgeCrest', 'bridgeFall'], ['bridgeFall', 'bridgeNorth'],
   ['bridgeNorth', 'barEntry'], ['barEntry', 'barAisleA'], ['barAisleA', 'barAisleB'], ['barAisleA', 'barSeatA'], ['barAisleB', 'barSeatB'],
+  ['north', 'officeRearAisle'], ['officeRearAisle', 'officeReceptionDoor'], ['officeReceptionDoor', 'receptionBridgeSouth'],
+  ['receptionBridgeSouth', 'receptionBridgeRise'], ['receptionBridgeRise', 'receptionBridgeCrest'], ['receptionBridgeCrest', 'receptionBridgeFall'], ['receptionBridgeFall', 'receptionBridgeNorth'],
+  ['receptionBridgeNorth', 'receptionEntry'], ['receptionEntry', 'receptionAisle'], ['receptionAisle', 'receptionLoungeEntry'],
+  ['receptionLoungeEntry', 'receptionInnerA'], ['receptionInnerA', 'receptionSeatA'], ['receptionInnerA', 'receptionInnerB'], ['receptionInnerB', 'receptionSeatB'],
 ];
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
@@ -72,15 +78,16 @@ export class OfficeNavigation {
     if (actor.destination !== id || !actor.route.length) this.move(id, id, 'home');
   }
   arrive(actor) {
-    actor.pose = actor.destination === actor.id ? 'seated' : actor.destination.startsWith('gardenBench') ? 'bench' : actor.destination.startsWith('barSeat') ? 'barstool' : 'standing';
+    actor.pose = actor.destination === actor.id ? 'seated' : actor.destination.startsWith('gardenBench') ? 'bench' : actor.destination.startsWith('barSeat') ? 'barstool' : receptionSeatHeadings[actor.destination] !== undefined ? 'sofa' : 'standing';
     if (actor.pose === 'bench') actor.heading = -Math.PI / 2;
     if (actor.pose === 'barstool') actor.heading = 0;
+    if (actor.pose === 'sofa') actor.heading = receptionSeatHeadings[actor.destination];
     if (actor.pose === 'seated') {
       actor.heading = actor.homeRotation; actor.reason = 'home';
       const callbacks = actor.callbacks.splice(0); callbacks.forEach(callback => callback());
     } else if (actor.reason === 'idle') {
       actor.returnAt = this.time + (actor.pose === 'barstool' ? 20 : 7); actor.reason = 'loitering';
-      this.onAmbient(actor.id, actor.pose === 'barstool' ? 'Xong việc rồi, mình qua Izakaya ngồi thư giãn một chút nhé!' : actor.pose === 'bench' ? 'Mình ra ngắm koi, nghỉ một chút nhé. Có việc mới mình về bàn ngay.' : 'Mình chưa có task nên ra đi dạo một chút. Có việc mới mình về bàn ngay nhé.');
+      this.onAmbient(actor.id, actor.pose === 'sofa' ? 'Mình đã tới sảnh tiếp đón. Mời khách ngồi chờ, dùng một tách trà nhé.' : actor.pose === 'barstool' ? 'Xong việc rồi, mình qua Izakaya ngồi thư giãn một chút nhé!' : actor.pose === 'bench' ? 'Mình ra ngắm koi, nghỉ một chút nhé. Có việc mới mình về bàn ngay.' : 'Mình chưa có task nên ra đi dạo một chút. Có việc mới mình về bàn ngay nhé.');
     } else if (actor.reason === 'called') {
       actor.returnAt = this.time + 13; actor.reason = 'listening'; this.onCallArrival(actor.id);
     }
@@ -93,14 +100,16 @@ export class OfficeNavigation {
   }
   requestGardenBreak() { return this.requestBreak('garden'); }
   requestBarBreak() { return this.requestBreak('bar'); }
+  requestReception() { return this.requestBreak('reception'); }
   requestBreak(place) {
     const available = [...this.actors.values()].filter(actor => !actor.busy && (this.atDesk(actor.id) || this.pair?.ids.includes(actor.id)));
     if (!available.length) return [];
     this.cancelPair();
     if (place === 'bar') this.afterHours = true;
+    if (place === 'reception') available.sort((a, b) => Number(b.id === 'account') - Number(a.id === 'account'));
     const ids = available.slice(0, 2).map(actor => actor.id);
-    if (ids.length === 2) this.pair = { ids, metAt: null, garden: place === 'garden', bar: place === 'bar' };
-    const destinations = place === 'bar' ? ['barSeatA', 'barSeatB'] : ['gardenBenchA', 'gardenBenchB'];
+    if (ids.length === 2) this.pair = { ids, metAt: null, garden: place === 'garden', bar: place === 'bar', reception: place === 'reception' };
+    const destinations = place === 'reception' ? ['receptionSeatA', 'receptionSeatB'] : place === 'bar' ? ['barSeatA', 'barSeatB'] : ['gardenBenchA', 'gardenBenchB'];
     ids.forEach((id, i) => this.move(id, destinations[i], ids.length === 2 ? 'social' : 'idle'));
     this.nextSocial = this.time + 45;
     return ids;
@@ -142,13 +151,13 @@ export class OfficeNavigation {
     if (this.pair) {
       const pair = this.pair, [a, b] = pair.ids.map(id => this.actors.get(id));
       if (!a.route.length && !b.route.length) {
-        if (!pair.garden && !pair.bar) { a.heading = Math.atan2(-(b.position[0] - a.position[0]), -(b.position[2] - a.position[2])); b.heading = a.heading + Math.PI; }
+        if (!pair.garden && !pair.bar && !pair.reception) { a.heading = Math.atan2(-(b.position[0] - a.position[0]), -(b.position[2] - a.position[2])); b.heading = a.heading + Math.PI; }
         if (!pair.metAt) pair.metAt = this.time;
         if (this.time >= this.quietUntil) {
-          if (!pair.first) { pair.first = true; this.onAmbient(a.id, pair.bar ? `${this.getName(b.id)} ơi, tan ca rồi! Ngồi Izakaya ngắm suối, gọi chút đồ ăn nhé?` : pair.garden ? `${this.getName(b.id)} ơi, ra ngắm koi với hoa anh đào một chút nhé. Tiếng thác nước dễ chịu quá!` : `${this.getName(b.id)} ơi, mình đang rảnh. Trao đổi một chút rồi về bàn nhé?`); }
-          if (!pair.second && this.time - pair.metAt > 3) { pair.second = true; this.onAmbient(b.id, pair.bar ? 'Ừ, qua cầu gỗ tới đây thích thật. Mình gọi một ly và ngồi thư giãn thôi!' : pair.garden ? 'Ừ, ngồi bên hồ thư giãn chút. Có task mới mình quay về bàn ngay.' : 'Ừ, mình cũng chưa có task. Có việc mới thì mình quay lại bàn ngay nhé.'); }
+          if (!pair.first) { pair.first = true; this.onAmbient(a.id, pair.reception ? 'Mình đã tới sảnh tiếp đón. Mời khách ngồi sofa, dùng trà trong lúc chờ nhé.' : pair.bar ? `${this.getName(b.id)} ơi, tan ca rồi! Ngồi Izakaya ngắm suối, gọi chút đồ ăn nhé?` : pair.garden ? `${this.getName(b.id)} ơi, ra ngắm koi với hoa anh đào một chút nhé. Tiếng thác nước dễ chịu quá!` : `${this.getName(b.id)} ơi, mình đang rảnh. Trao đổi một chút rồi về bàn nhé?`); }
+          if (!pair.second && this.time - pair.metAt > 3) { pair.second = true; this.onAmbient(b.id, pair.reception ? 'Cầu đèn lồng đẹp thật. Mình cùng ngồi đây chuẩn bị buổi trao đổi với khách nhé.' : pair.bar ? 'Ừ, qua cầu gỗ tới đây thích thật. Mình gọi một ly và ngồi thư giãn thôi!' : pair.garden ? 'Ừ, ngồi bên hồ thư giãn chút. Có task mới mình quay về bàn ngay.' : 'Ừ, mình cũng chưa có task. Có việc mới thì mình quay lại bàn ngay nhé.'); }
         }
-        if (this.time - pair.metAt > (pair.bar ? 22 : pair.garden ? 14 : 9)) this.cancelPair();
+        if (this.time - pair.metAt > (pair.bar ? 22 : pair.reception ? 18 : pair.garden ? 14 : 9)) this.cancelPair();
       }
     } else if (this.time >= this.nextSocial && this.time >= this.quietUntil) {
       const order = ['creative', 'media', 'insight', 'account', 'strategy'];

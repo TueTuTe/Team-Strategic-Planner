@@ -2,10 +2,13 @@ import * as THREE from 'three';
 import { buildNatureCorner } from './nature-corner.js';
 import { buildJapaneseGarden } from './japanese-garden.js';
 import { buildIzakaya } from './izakaya.js';
+import { buildReception } from './reception.js';
 import { officeTV } from './office-tv.js';
 
 export const officeZones = {
-  overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Vườn Nhật · Cầu suối · Izakaya', target: [6.3, .9, -6], offset: [35, 33, 40] },
+  overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Sảnh tiếp đón · Vườn Nhật · Izakaya', target: [6.3, .9, -6], offset: [35, 33, 40] },
+  reception: { label: 'Sảnh tiếp đón', detail: 'Lễ tân kiểu Nhật · Sofa cong · Bàn trà chờ khách', target: [-.3, 1, -16.2], offset: [11, 12, 15] },
+  receptionBridge: { label: 'Cầu đèn lồng', detail: 'Văn phòng ↔ Sảnh tiếp đón · Cầu gỗ treo đèn lồng trên suối', target: [.3, 1, -9.4], offset: [7, 13, 9] },
   garden: { label: 'Vườn Nhật', detail: 'Hoa anh đào · Thác nước · Hồ koi · Ghế nghỉ bên hồ', target: [15.5, 1, -.2], offset: [10, 12, 14] },
   izakaya: { label: 'Izakaya', detail: 'Bar sau vườn · Cầu gỗ qua suối · Đèn lồng & quầy sake', target: [15.6, 1.25, -16], offset: [10, 11, 15] },
   bridge: { label: 'Cầu qua suối', detail: 'Lối từ vườn sang Izakaya · Suối nối hồ koi', target: [15.2, .6, -8.6], offset: [10, 12, 13] },
@@ -23,7 +26,12 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   for (let col = 0; col < 30; col++) for (let row = 0; row < 6; row++) {
     box(.59, .08, 2.32, `floor${(col + row * 2) % 3}`, -8.85 + col * .61, .005, -5.85 + row * 2.35);
   }
-  box(18.2, 3.8, .16, '#d9ccaf', 0, 1.85, -7.05);
+  // A real opening in the rear wall leads directly to the reception bridge.
+  box(8.45, 3.8, .16, '#d9ccaf', -4.875, 1.85, -7.05);
+  box(7.85, 3.8, .16, '#d9ccaf', 5.175, 1.85, -7.05);
+  box(1.9, .85, .16, '#d9ccaf', .3, 3.325, -7.05);
+  for (const x of [-.65, 1.25]) box(.12, 3.02, .22, 'walnut', x, 1.5, -7.02);
+  box(2.02, .12, .24, 'oak', .3, 3.0, -7.02);
   box(18.4, .22, .27, 'walnut', 0, 3.86, -6.98);
   box(18.3, .12, .2, 'oak', 0, 3.59, -6.9);
   box(.22, .22, 14.1, 'walnut', -9.08, 3.86, 0);
@@ -151,7 +159,7 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
       }
     }
   }
-  bookcase(-.7, 3.05); bookcase(-7.9, 1.45);
+  bookcase(-1.6, 1.15); bookcase(-7.9, 1.45);
   const geometry = new THREE.BoxGeometry(1, 1, 1), transform = new THREE.Object3D();
   for (const color of colors) {
     const subset = books.filter(book => book.color === color), mesh = new THREE.InstancedMesh(geometry, mat(color), subset.length);
@@ -230,5 +238,6 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   const seats = { strategy: { x: -5.65, z: -5.95, rotation: Math.PI }, ...Object.fromEntries(studioSeats.map(seat => [seat.id, seat])) };
   const animateGarden = buildJapaneseGarden({ scene, box, cylinder, sphere, mat, textures });
   const animateIzakaya = buildIzakaya({ scene, box, cylinder, sphere, mat, textures });
-  return { seats, monitorMeshes, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); } };
+  const animateReception = buildReception({ scene, box, cylinder, sphere, mat, textures });
+  return { seats, monitorMeshes, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); animateReception(time); } };
 }

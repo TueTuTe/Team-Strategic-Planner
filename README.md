@@ -107,3 +107,9 @@ Nhấn **Ra vườn nghỉ** để tối đa hai nhân viên rảnh đi theo l�
 Quán bar nằm phía sau khu vườn, có quầy gỗ, ghế cao, kệ sake, đèn lồng đỏ, rèm noren và bàn nhỏ. Một nhánh nước thông từ hồ koi ra con suối sau vườn; cầu gỗ cong bắc qua suối là lối đi duy nhất từ vườn sang quán. Tab **Izakaya** xem gần quầy; **Cầu qua suối** xem lối nối và dòng nước.
 
 Nhấn **Tan ca · Sang Izakaya** để bắt đầu giờ nghỉ theo lựa chọn của bạn, không phụ thuộc đồng hồ máy. Tối đa hai người rảnh đi bộ qua vườn, lên cầu rồi ngồi tại quầy và trò chuyện bằng bong bóng chữ. Trong giờ nghỉ này, nhân viên đã xong việc có thể tự sang quán. Nhân viên có task đang mở tiếp tục ở lại làm việc; nhận việc mới khi đang nghỉ sẽ quay về bàn trước khi bắt đầu xử lý. **Về văn phòng** kết thúc giờ nghỉ và gọi mọi người quay lại. Nút **Chuyển động** vẫn áp dụng cho cả khu bar và suối.
+
+## Sảnh tiếp đón và cầu đèn lồng
+
+Góc còn lại, phía sau văn phòng và đối diện Izakaya, là sảnh lễ tân kiểu Nhật với sofa cong liên tục, bàn trà oval, quầy gỗ nan, vách shoji, biển Atelier và cây xanh. Suối được nối dài từ khu Izakaya qua giữa văn phòng và sảnh. Cầu gỗ cong treo tám đèn lồng kết nối hai khu; cửa mở phía sau văn phòng và lối giữa các đồ nội thất cho phép nhân viên đi qua thực sự.
+
+Chọn **Sảnh tiếp đón** / **Xem sảnh & sofa** để xem gần; **Cầu đèn lồng** xem lối qua suối. **Ra sảnh tiếp khách** gọi tối đa hai người rảnh, ưu tiên Account, đi qua cầu rồi ngồi tại sofa và trò chuyện. Họ tự quay về sau lượt tiếp đón hoặc trở về bàn khi nhận việc mới. Nhân viên có task đang mở không được điều đi; tắt chuyển động đưa mọi người về bàn. Tiếp khách và lời thoại là mô phỏng, chưa có khách hay lịch hẹn thật.

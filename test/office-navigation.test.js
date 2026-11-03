@@ -70,3 +70,16 @@ test('a single free employee rests at the bar, and cancelling mid-bridge returns
   assert.ok(Math.hypot(...before.map((v, i) => v - nav.actors.get('creative').position[i])) <= .181);
   nav.quietFor(150); step(nav, 60); assert.equal(nav.atDesk('creative'), true);
 });
+test('reception uses its own bridge and the open office doorway, seats staff and returns for new work', () => {
+  const path = walkRoute('account', 'receptionSeatA');
+  for (const point of ['officeRearAisle', 'officeReceptionDoor', 'receptionBridgeSouth', 'receptionBridgeCrest', 'receptionBridgeNorth', 'receptionLoungeEntry']) assert.ok(path.includes(point));
+  assert.ok(!path.includes('gardenGate')); assert.ok(walkNodes.receptionBridgeCrest[1] > walkNodes.receptionBridgeSouth[1]);
+  const spoken = [], nav = new OfficeNavigation({ seats, onAmbient: (id, text) => spoken.push(text) });
+  nav.setBusy('strategy', true); const visitors = nav.requestReception();
+  assert.equal(visitors[0], 'account'); assert.ok(!visitors.includes('strategy'));
+  for (let i = 0; i < 700 && !visitors.every(id => nav.actors.get(id).pose === 'sofa'); i++) nav.step(.1);
+  for (const id of visitors) assert.equal(nav.actors.get(id).pose, 'sofa');
+  step(nav, 4); assert.ok(spoken.some(text => text.includes('sảnh tiếp đón')));
+  let ready = false; nav.setBusy('account', true); nav.home('account', () => { ready = true; });
+  assert.equal(ready, false); nav.quietFor(100); step(nav, 45); assert.equal(ready, true); assert.equal(nav.atDesk('account'), true);
+});

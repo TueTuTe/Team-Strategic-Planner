@@ -99,3 +99,16 @@ test('front desk leaves the entry aisle open and the inner sofa connects to the 
   const barRoute = walkRoute('receptionSeatA', 'barSeatA');
   for (const point of ['officeReceptionDoor', 'gardenGate', 'bridgeCrest']) assert.ok(barRoute.includes(point));
 });
+test('gallery visits cross the garden bridge; the bar has no direct route into the gallery', () => {
+  for (const start of ['creative', 'barSeatA']) {
+    const path = walkRoute(start, 'galleryViewB');
+    for (const point of ['gardenEntry', 'gardenSouthPath', 'galleryBridgeWest', 'galleryBridgeCrest', 'galleryBridgeEast', 'galleryEntry']) assert.ok(path.includes(point));
+    if (start === 'barSeatA') assert.ok(path.includes('bridgeNorth'));
+  }
+  const nav = new OfficeNavigation({ seats }); nav.setBusy('strategy', true);
+  const visitors = nav.requestGallery(); assert.equal(visitors.length, 2); assert.ok(!visitors.includes('strategy'));
+  for (let i = 0; i < 1400 && visitors.some(id=>nav.actors.get(id).route.length); i++) nav.step(.1);
+  for (const id of visitors) { assert.ok(nav.actors.get(id).destination.startsWith('galleryView')); assert.equal(nav.actors.get(id).heading, -Math.PI / 2); }
+  let ready = false; nav.setBusy(visitors[0], true); nav.home(visitors[0], ()=>ready=true); assert.equal(ready, false);
+  nav.quietFor(200); step(nav, 100); assert.equal(ready, true); assert.equal(nav.atDesk(visitors[0]), true);
+});

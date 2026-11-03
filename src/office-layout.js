@@ -5,9 +5,12 @@ import { buildIzakaya } from './izakaya.js';
 import { buildReception } from './reception.js';
 import { officeTV } from './office-tv.js';
 import { receptionTV } from './reception-layout.js';
+import { buildStrategyGallery } from './strategy-gallery.js';
 
 export const officeZones = {
-  overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Sảnh tiếp đón · Vườn Nhật · Izakaya', target: [4.5, .9, -6], offset: [35, 33, 40] },
+  overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Sảnh · Vườn · Izakaya · Triển lãm Chiến lược', target: [11, .9, -6], offset: [40, 39, 47] },
+  gallery: { label: 'Triển lãm', detail: 'Phòng Triển lãm Chiến lược · Phòng dài cạnh vườn & Izakaya · Cửa vào từ vườn', target: [30.8, 1, -7.2], offset: [-15, 24, 31] },
+  galleryBridge: { label: 'Cầu triển lãm', detail: 'Vườn → Cầu qua suối → Phòng triển lãm', target: [24.2, 1, 5.5], offset: [7, 10, 10] },
   reception: { label: 'Sảnh tiếp đón', detail: 'Cửa khách phía ngoài bên trái · Quầy hướng ra cửa · Sofa cong phía trong', target: [-.5, 1, -16.6], offset: [-14, 15, 16] },
   guestEntrance: { label: 'Cửa đón khách', detail: 'Sân ngoài → Cửa chính bên trái → Quầy lễ tân → Khu chờ', target: [-8.8, 1.2, -14.25], offset: [-7, 4.8, 5] },
   frontDesk: { label: 'Quầy lễ tân', detail: 'Quầy hướng ra cửa chính bên ngoài · Mèo thần tài vẫy tay', target: [-5.65, 1.35, -14.6], offset: [-3, 1.8, 4] },
@@ -243,5 +246,6 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   const animateGarden = buildJapaneseGarden({ scene, box, cylinder, sphere, mat, textures });
   const animateIzakaya = buildIzakaya({ scene, box, cylinder, sphere, mat, textures });
   const reception = buildReception({ scene, box, cylinder, sphere, mat, textures });
-  return { seats, monitorMeshes, receptionTV: reception.tv, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); reception.animate(time); } };
+  const gallery = buildStrategyGallery({ scene, box, cylinder, sphere, mat, textures });
+  return { seats, monitorMeshes, receptionTV: reception.tv, gallery, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); reception.animate(time); gallery.animate(time); } };
 }

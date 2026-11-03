@@ -22,17 +22,17 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   controls.target.set(...officeZones.overview.target);
   controls.enableDamping = true;
   controls.minDistance = 9;
-  controls.maxDistance = 80;
+  controls.maxDistance = 105;
   controls.maxPolarAngle = Math.PI / 2.5;
   controls.minPolarAngle = .3;
   controls.enablePan = true;
   scene.add(new THREE.HemisphereLight('#fff3de', '#87745b', 1.9));
   const sunlight = new THREE.DirectionalLight('#ffebc5', 3.1);
   sunlight.position.set(-7, 22, 8);
-  sunlight.target.position.set(6, 0, 0); scene.add(sunlight.target);
+  sunlight.target.position.set(13, 0, -4); scene.add(sunlight.target);
   sunlight.castShadow = true;
   sunlight.shadow.mapSize.set(2048, 2048);
-  Object.assign(sunlight.shadow.camera, { left: -35, right: 35, top: 32, bottom: -32, far: 100 });
+  Object.assign(sunlight.shadow.camera, { left: -45, right: 45, top: 40, bottom: -40, far: 120 });
   sunlight.shadow.bias = -.001;
   sunlight.shadow.normalBias = .025;
   scene.add(sunlight);
@@ -69,7 +69,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const obj = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), mat(color));
     obj.position.set(x, y, z); obj.castShadow = true; parent.add(obj); return obj;
   }
-  const { seats, animateNature, receptionTV } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const { seats, animateNature, receptionTV, gallery } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
   const tvLayer = tvElement ? mountTVScreen(container, scene, camera, tvElement, onTVVisibility) : null;
   const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
   const agents = [];
@@ -137,8 +137,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
       a.sittingLegs.visible = !standing;
       a.legs.forEach((leg, side) => { leg.visible = standing; leg.rotation.x = motion && walking ? Math.sin(phase * 9 + side * Math.PI) * .55 : 0; });
       a.anchor.set(x, a.g.position.y + 1.95, z); a.ring.position.set(x, y + .09, z);
-      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : state.pose === 'sofa' ? 'reception' : state.pose === 'barstool' ? 'izakaya' : state.pose === 'bench' ? 'resting' : standing ? 'social' : 'desk';
-      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : state.pose === 'sofa' ? 'Tại sảnh tiếp đón' : state.pose === 'barstool' ? 'Tan ca tại Izakaya' : state.pose === 'bench' ? 'Nghỉ bên hồ koi' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
+      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : state.destination.startsWith('galleryView') ? 'gallery' : state.pose === 'sofa' ? 'reception' : state.pose === 'barstool' ? 'izakaya' : state.pose === 'bench' ? 'resting' : standing ? 'social' : 'desk';
+      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : state.destination.startsWith('galleryView') ? 'Đang xem plan tại phòng triển lãm' : state.pose === 'sofa' ? 'Tại sảnh tiếp đón' : state.pose === 'barstool' ? 'Tan ca tại Izakaya' : state.pose === 'bench' ? 'Nghỉ bên hồ koi' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
       const reacting = a.reactionUntil > now;
       a.head.rotation.y = motion ? Math.sin(phase * .65) * .09 : 0;
       a.head.rotation.x = motion ? a.working ? .08 + Math.sin(phase * 3) * .035 : reacting ? Math.sin(phase * 5) * .09 : 0 : 0;
@@ -210,6 +210,9 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   }
   return {
     focusZone,
+    setGalleryEntries(entries, selectedId) { gallery.setEntries(entries, selectedId); needsRender = true; },
+    focusGalleryPlan(index) { const view = gallery.showPlan(index); if (!view) return; controls.minDistance = 5; controls.maxPolarAngle = Math.PI / 2.5; controls.target.set(...view.target); camera.position.copy(controls.target).add(new THREE.Vector3(...view.offset)); controls.update(); needsRender = true; },
+    visitGallery() { if (!motion) return []; const ids = navigation.requestGallery(); needsRender = true; return ids; },
     toggleReceptionTV() { const state = receptionTV.toggle(); needsRender = true; return state; },
     setReceptionTVContent(value) { const state = receptionTV.setContent(value); needsRender = true; return state; },
     gardenBreak() { if (!motion) return []; const ids = navigation.requestGardenBreak(); needsRender = true; return ids; },

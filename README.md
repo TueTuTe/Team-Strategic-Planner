@@ -115,3 +115,14 @@ Góc còn lại, phía sau văn phòng và đối diện Izakaya, là sảnh l�
 Chọn **Sảnh tiếp đón** / **Xem sảnh & sofa** để xem gần; **Cửa đón khách** / **Xem cửa đón khách** xem lối vào từ sân ngoài; **Quầy lễ tân** / **Quầy & mèo thần tài** xem quầy và mèo; **Cầu đèn lồng** xem lối qua suối. **Ra sảnh tiếp khách** gọi tối đa hai người rảnh, ưu tiên Account, đi qua cầu rồi ngồi tại sofa và trò chuyện. Họ tự quay về sau lượt tiếp đón hoặc trở về bàn khi nhận việc mới. Nhân viên có task đang mở không được điều đi; tắt chuyển động đưa mọi người về bàn và ngừng vẫy tay của mèo. Tiếp khách và lời thoại là mô phỏng, chưa có khách hay lịch hẹn thật.
 
 Tivi sảnh được gắn lên mặt sau vách quầy lễ tân, hướng về sofa. Chọn **Tivi sảnh** / **Xem tivi sảnh** để xem gần; đổi giữa **Lời chào Atelier** và **Tranh phong cảnh Nhật**, hoặc bật/tắt bằng hàng điều khiển **TIVI SẢNH**. Nội dung này được vẽ cục bộ, dùng được ngoại tuyến và khi tắt chuyển động. Tivi sảnh hoạt động độc lập với tivi YouTube trong văn phòng.
+
+## Phòng Triển lãm Chiến lược
+
+Phòng chữ nhật dài 28,8 × 9,2 đơn vị nằm dọc mép phải của Izakaya và vườn. Một nhánh suối rộng 4,2 đơn vị ngăn phòng với cả hai khu, nối tiếp dòng nước hiện có. Cửa duy nhất nằm ở đầu phía vườn, nối bằng cầu gỗ cong; phía giáp Izakaya có vách kín. Nội thất gồm vách shoji, đèn giấy, năm khung trưng bày, bàn xem bản vẽ và ghế nghỉ.
+
+- **Triển lãm / Xem phòng triển lãm** xem toàn phòng; **Cầu triển lãm / Xem cầu từ vườn** xem lối vào.
+- **Plan trưng bày** chọn các kế hoạch đã lưu trên trình duyệt, đưa camera tới đúng khung và hỗ trợ nhiều hơn năm plan. **Mở plan trưng bày** mở kế hoạch gốc để xem, cập nhật giai đoạn hoặc xuất Markdown.
+- Nhãn **Đã hoàn thành** chỉ áp dụng khi cả năm giai đoạn đã được đánh dấu hoàn thành. **Chỉ plan hoàn thành** lọc theo trạng thái này; các plan khác mang nhãn bản nháp kèm tiến độ. Nếu chưa có plan, dự án Mộc được trưng bày với nhãn **Dự án mẫu**.
+- **Qua cầu xem plan** đưa tối đa hai nhân viên rảnh đi từ vườn sang xem và trò chuyện. Nhân viên có task không tham gia; nhận việc mới sẽ quay về bàn trước khi làm. Bật Chuyển động để sử dụng việc đi lại.
+
+Phòng trưng bày khung kế hoạch theo mẫu đang có trong ứng dụng, chưa nhập được tệp PPTX/PDF hoặc đồng bộ portfolio từ máy chủ.

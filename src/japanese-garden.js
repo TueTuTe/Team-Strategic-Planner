@@ -69,7 +69,7 @@ export function buildJapaneseGarden({ scene, box, cylinder, sphere, mat, texture
   box(.44, .43, .44, '#bfc3ab', 12.15, 1.2, -3.3, garden);
   box(.29, .24, .015, 'lantern', 12.15, 1.2, -3.067, garden);
   const roof = new THREE.Mesh(new THREE.ConeGeometry(.45, .25, 4), mat('#828e78')); roof.rotation.y = Math.PI / 4; roof.position.set(12.15, 1.54, -3.3); garden.add(roof);
-  for (const [x, z, scale] of [[13, -5.8, .8], [20.8, -3.6, 1], [20.6, 5.6, .9], [13.6, 5.9, .65]]) {
+  for (const [x, z, scale] of [[13, -5.8, .8], [20.8, -3.6, 1], [20.7, 1, .9], [13.6, 5.9, .65]]) {
     const shrub = sphere(.6, '#71855e', x, .38, z, garden); shrub.scale.set(scale * 1.3, .7, scale);
   }
   const treePositions = [[11.9, -5.15], [20.5, 3.6], [16.2, 5.75]];

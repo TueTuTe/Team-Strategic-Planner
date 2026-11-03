@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { receptionBridge, receptionBridgeHeight, receptionSofa, receptionDesk } from './reception-layout.js';
+import { receptionBridge, receptionBridgeHeight, receptionSofa, receptionDesk, receptionGuestEntrance } from './reception-layout.js';
 import { buildManekiNeko } from './maneki-neko.js';
 
 export function buildReception({ scene, box, cylinder, sphere, mat, textures }) {
@@ -80,26 +80,39 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   }
   box(17, .65, .09, 'walnut', -.45, .57, -21.26, lobby);
   box(17.1, .07, .16, 'oak', -.45, .94, -21.21, lobby);
-  // The bridge-side entrance is a genkan threshold with a split indigo noren.
+  // Guests enter from the grounds west of the lobby. The lantern bridge is internal.
   const entry = new THREE.Group(); entry.name = 'reception-main-entrance'; lobby.add(entry);
-  box(2.1, .045, 1.38, '#b9b6a1', .3, .252, -12.65, entry);
-  box(2.25, .065, .14, 'oak', .3, .26, -13.4, entry);
-  for (const x of [-.82, 1.42]) box(.12, 2.85, .18, 'walnut', x, 1.68, -12.0, entry);
-  box(2.6, .18, .25, 'oak', .3, 3.12, -12, entry);
-  for (let i = 0; i < 3; i++) box(.68, .61, .035, '#354e56', -.41 + i * .71, 2.77, -11.98, entry);
-  const crest = new THREE.Mesh(new THREE.TorusGeometry(.16, .014, 5, 40, Math.PI * 1.88), mat('#e6dfc5')); crest.position.set(.3, 2.78, -11.95); crest.rotation.z = .18; entry.add(crest);
-  // Shoji and timber screens leave the entry and center aisle open.
-  for (let panel = 0; panel < 4; panel++) {
-    const z = -13.35 - panel * 2.25;
-    box(.035, 3.12, 2.1, 'paper', -9, 1.95, z, lobby);
-    for (const dz of [-1.1, 1.1]) box(.09, 3.45, .07, 'walnut', -8.94, 1.95, z + dz, lobby);
-    for (let row = 0; row < 8; row++) box(.06, .035, 2.17, 'oak', -8.91, .5 + row * .4, z, lobby);
-    for (let col = 0; col < 3; col++) box(.06, 3.13, .035, 'oak', -8.9, 1.95, z - .7 + col * .7, lobby);
+  entry.position.set(receptionGuestEntrance.x, 0, receptionGuestEntrance.z); entry.rotation.y = -Math.PI / 2;
+  box(2.35, .045, 1.4, '#b9b6a1', 0, .252, -.15, entry);
+  box(2.5, .065, .14, 'oak', 0, .26, -.88, entry);
+  for (const x of [-1.2, 1.2]) box(.12, 2.85, .18, 'walnut', x, 1.68, 0, entry);
+  box(2.75, .18, .25, 'oak', 0, 3.12, 0, entry);
+  for (let i = 0; i < 3; i++) box(.73, .61, .035, '#354e56', -.77 + i * .77, 2.77, .03, entry);
+  const crest = new THREE.Mesh(new THREE.TorusGeometry(.16, .014, 5, 40, Math.PI * 1.88), mat('#e6dfc5')); crest.position.set(0, 2.78, .06); crest.rotation.z = .18; entry.add(crest);
+  const porch = new THREE.Group(); porch.name = 'reception-exterior-approach'; lobby.add(porch);
+  box(4.6, .24, 4.5, '#8d957c', -11.35, -.13, -14.25, porch);
+  box(3.8, .1, 3.1, '#b9b6a1', -11.1, .03, -14.25, porch);
+  box(.75, .16, 2.4, '#aaa995', -9.8, .065, -14.25, porch);
+  box(.45, .23, 2.4, '#c6c1a8', -9.35, .105, -14.25, porch);
+  box(1.75, .12, 3.1, 'walnut', -9.65, 3.48, -14.25, porch);
+  box(1.95, .06, 3.3, '#545a4c', -9.7, 3.58, -14.25, porch);
+  for (const z of [-15.83, -12.67]) {
+    cylinder(.012, .012, .3, '#594a37', -9.9, 3.22, z, porch);
+    const lamp = sphere(.23, 'lantern', -9.9, 2.9, z, porch); lamp.scale.y = 1.3;
+    for (const y of [2.63, 3.17]) cylinder(.13, .13, .035, 'walnut', -9.9, y, z, porch);
+  }
+  // Shoji panels stop at the door jambs, leaving a real 2.4-unit external opening.
+  for (const [from, to] of [[-13.05, -12.2], [-17.4, -15.45], [-19.35, -17.4], [-21.3, -19.35]]) {
+    const z = (from + to) / 2, width = to - from;
+    box(.035, 3.12, width - .08, 'paper', -9, 1.95, z, lobby);
+    for (const dz of [-width / 2, width / 2]) box(.09, 3.45, .07, 'walnut', -8.94, 1.95, z + dz, lobby);
+    for (let row = 0; row < 8; row++) box(.06, .035, width, 'oak', -8.91, .5 + row * .4, z, lobby);
+    for (let col = 1; col < 4; col++) box(.06, 3.13, .035, 'oak', -8.9, 1.95, from + col * width / 4, lobby);
   }
   // A tatami waiting area sits deeper inside, away from the front desk and doorway.
   for (let col = 0; col < 4; col++) for (let row = 0; row < 2; row++) {
-    box(1.59, .045, 2.99, 'tatami', -6.55 + col * 1.63, .255, -19.03 + row * 3.05, lobby);
-    for (const dx of [-.8, .8]) box(.035, .048, 3.0, '#68775d', -6.55 + col * 1.63 + dx, .257, -19.03 + row * 3.05, lobby);
+    box(1.59, .045, 2.99, 'tatami', .95 + col * 1.63, .255, -18.83 + row * 3.05, lobby);
+    for (const dx of [-.8, .8]) box(.035, .048, 3.0, '#68775d', .95 + col * 1.63 + dx, .257, -18.83 + row * 3.05, lobby);
   }
   // Smooth annular shapes make a continuous curved sofa, open toward the entry aisle.
   const { x: sx, z: sz, start, end } = receptionSofa;
@@ -112,7 +125,7 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   curvedSofaPart(1.97, 3.1, .3, .72, 'walnut').name = 'reception-sofa-base';
   curvedSofaPart(1.95, 3.02, .19, .91, '#ded7bf').name = 'reception-curved-sofa';
   curvedSofaPart(2.78, 3.12, .63, 1.47, '#d4ccb2');
-  for (const angle of [start + .15, Math.PI * 1.15, end - .13]) {
+  for (const angle of [start + .15, Math.PI * 2.15, end - .13]) {
     const cushion = sphere(.29, '#8c987c', sx + Math.cos(angle) * 2.66, 1.1, sz + Math.sin(angle) * 2.66, lobby);
     cushion.scale.set(1, .8, .42); cushion.rotation.y = Math.PI / 2 - angle;
   }
@@ -122,8 +135,9 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   const pot = sphere(.14, '#596b5e', sx, .9, sz, lobby); pot.scale.y = .8;
   cylinder(.12, .1, .025, '#4d5e50', sx, 1.025, sz, lobby);
   for (const dx of [-.3, .3]) cylinder(.07, .06, .1, '#f0e1c0', sx + dx, .84, sz + .13, lobby);
-  // A compact hinoki counter welcomes visitors immediately to the right of the entrance.
+  // The counter and lucky cat face west toward the outside guest door.
   const desk = new THREE.Group(); desk.name = 'japanese-front-desk'; desk.position.set(receptionDesk.x, 0, receptionDesk.z); lobby.add(desk);
+  desk.rotation.y = receptionDesk.rotation;
   box(4.62, 1.02, 1.08, 'walnut', 0, .79, 0, desk);
   box(4.4, .75, .055, 'paper', 0, .82, .572, desk);
   for (const x of [-2.27, -.02, 2.27]) box(.13, 1.07, .16, 'oak', x, .82, .62, desk);
@@ -147,22 +161,23 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   cylinder(.02, .02, .3, '#a18d65', 1.85, 1.62, -.05, desk);
   cylinder(.19, .24, .28, 'lantern', 1.85, 1.87, -.05, desk);
   const luckyCat = buildManekiNeko({ parent: desk, box, cylinder, sphere, mat }); luckyCat.cat.position.set(-1.62, 1.45, .04);
-  // A freestanding shoji backdrop separates the service counter from the quiet inner hall.
-  box(5.35, 2.4, .055, 'paper', 3.65, 1.57, -15.25, lobby);
-  for (const x of [1, 3.65, 6.3]) box(.1, 2.55, .13, 'walnut', x, 1.6, -15.22, lobby);
-  for (let i = 0; i < 8; i++) box(5.35, .035, .07, 'oak', 3.65, .43 + i * .32, -15.19, lobby);
-  for (let i = 0; i < 10; i++) box(.035, 2.4, .07, 'oak', 1.2 + i * .54, 1.57, -15.18, lobby);
+  // The sign and shoji backdrop rotate with the desk toward arriving guests.
+  const backdrop = new THREE.Group(); backdrop.name = 'reception-desk-backdrop'; backdrop.position.copy(desk.position); backdrop.rotation.y = desk.rotation.y; lobby.add(backdrop);
+  box(5.2, 2.4, .055, 'paper', 0, 1.57, -1.3, backdrop);
+  for (const x of [-2.6, 0, 2.6]) box(.1, 2.55, .13, 'walnut', x, 1.6, -1.27, backdrop);
+  for (let i = 0; i < 8; i++) box(5.2, .035, .07, 'oak', 0, .43 + i * .32, -1.24, backdrop);
+  for (let i = 0; i < 10; i++) box(.035, 2.4, .07, 'oak', -2.4 + i * .53, 1.57, -1.23, backdrop);
   const artCanvas = document.createElement('canvas'); artCanvas.width = 1024; artCanvas.height = 256;
   const ctx = artCanvas.getContext('2d'); ctx.fillStyle = '#dcd2b8'; ctx.fillRect(0, 0, 1024, 256);
   ctx.fillStyle = '#415746'; ctx.textAlign = 'center'; ctx.font = '600 104px serif'; ctx.fillText('ATELIER', 512, 135);
   ctx.font = '24px sans-serif'; ctx.fillText('RECEPTION  ·  WELCOME', 512, 201);
   const texture = new THREE.CanvasTexture(artCanvas); texture.colorSpace = THREE.SRGBColorSpace; textures.receptionSign = texture;
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, .7), new THREE.MeshStandardMaterial({ map: texture, roughness: .9 })); sign.position.set(3.65, 2.23, -15.1); lobby.add(sign);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.8, .7), new THREE.MeshStandardMaterial({ map: texture, roughness: .9 })); sign.position.set(0, 2.23, -1.15); backdrop.add(sign);
   // Tokonoma alcove: ink scroll, raised timber display and ikebana at the rear.
-  box(4.8, .16, 1.18, 'walnut', 3.9, .31, -20.5, lobby);
-  box(1.65, 2.35, .04, '#7a8064', 3.9, 2.27, -21.15, lobby);
-  box(1.4, 1.95, .045, 'artwork', 3.9, 2.28, -21.12, lobby);
-  for (const y of [1.07, 3.47]) cylinder(.04, .04, 1.75, 'walnut', 3.9, y, -21.08, lobby).rotation.z = Math.PI / 2;
+  box(4.8, .16, 1.18, 'walnut', -2, .31, -20.5, lobby);
+  box(1.65, 2.35, .04, '#7a8064', -2, 2.27, -21.15, lobby);
+  box(1.4, 1.95, .045, 'artwork', -2, 2.28, -21.12, lobby);
+  for (const y of [1.07, 3.47]) cylinder(.04, .04, 1.75, 'walnut', -2, y, -21.08, lobby).rotation.z = Math.PI / 2;
   // Ikebana, leafy plants and a stone arrangement complete the quiet waiting area.
   for (const [x, z] of [[-7.6, -19.8], [7.1, -12.8]]) {
     cylinder(.37, .3, .5, '#68745d', x, .5, z, lobby);
@@ -171,11 +186,11 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
       const leaf = sphere(.25, '#75835e', x + Math.cos(i * 2.4) * .4, 1.5 + i % 3 * .25, z + Math.sin(i * 2.4) * .35, lobby); leaf.scale.set(1.4, .35, .8);
     }
   }
-  box(2.7, .3, .8, 'walnut', 3.9, .43, -20.4, lobby);
-  cylinder(.13, .18, .36, '#5f6f60', 3.9, .76, -20.4, lobby);
+  box(2.7, .3, .8, 'walnut', -2, .43, -20.4, lobby);
+  cylinder(.13, .18, .36, '#5f6f60', -2, .76, -20.4, lobby);
   for (let i = 0; i < 3; i++) {
-    beam(new THREE.Vector3(3.9, .9, -20.4), new THREE.Vector3(3.55 + i * .27, 1.7 + i % 2 * .2, -20.4), .012, '#725e45', lobby);
-    sphere(.12, '#e4bcc0', 3.55 + i * .27, 1.7 + i % 2 * .2, -20.4, lobby);
+    beam(new THREE.Vector3(-2, .9, -20.4), new THREE.Vector3(-2.35 + i * .27, 1.7 + i % 2 * .2, -20.4), .012, '#725e45', lobby);
+    sphere(.12, '#e4bcc0', -2.35 + i * .27, 1.7 + i % 2 * .2, -20.4, lobby);
   }
   const ripples = [];
   for (let i = 0; i < 24; i++) ripples.push(box(.35 + i % 4 * .12, .008, .025, '#b6d7bf', -9 + i % 12 * 1.5, .283, -8 - Math.floor(i / 12) * 2.3, lobby));

@@ -32,6 +32,8 @@ const links = [
   ['receptionBridgeSouth', 'receptionBridgeRise'], ['receptionBridgeRise', 'receptionBridgeCrest'], ['receptionBridgeCrest', 'receptionBridgeFall'], ['receptionBridgeFall', 'receptionBridgeNorth'],
   ['receptionBridgeNorth', 'receptionEntry'], ['receptionEntry', 'receptionAisle'], ['receptionAisle', 'receptionLoungeEntry'],
   ['receptionLoungeEntry', 'receptionInnerA'], ['receptionInnerA', 'receptionSeatA'], ['receptionInnerA', 'receptionInnerB'], ['receptionInnerB', 'receptionSeatB'],
+  ['guestOutside', 'guestApproach'], ['guestApproach', 'guestThreshold'], ['guestThreshold', 'guestDoor'], ['guestDoor', 'guestWelcome'],
+  ['guestWelcome', 'guestPassage'], ['guestPassage', 'guestInner'], ['guestInner', 'receptionAisle'],
 ];
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 

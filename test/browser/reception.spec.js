@@ -10,6 +10,10 @@ test('Japanese reception, curved sofa and lantern bridge render and staff can vi
   await expect(page.locator('#zone-detail')).toContainText('Sofa cong');
   await page.waitForTimeout(600);
   await page.locator('.office-panel').screenshot({ path: '/tmp/atelier-reception.png' });
+  await page.getByRole('button', { name: 'Xem cửa đón khách', exact: true }).click();
+  await expect(page.locator('#zone-detail')).toContainText('Sân ngoài');
+  await page.waitForTimeout(600);
+  await page.locator('.office-panel').screenshot({ path: '/tmp/atelier-guest-entrance.png' });
   await page.getByRole('button', { name: 'Quầy & mèo thần tài', exact: true }).click();
   await expect(page.locator('#zone-detail')).toContainText('Mèo thần tài');
   await page.waitForTimeout(600);

@@ -201,7 +201,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   animate(performance.now());
   function focusZone(id) {
     const zone = officeZones[id] || officeZones.overview;
-    controls.minDistance = id === 'tv' ? 6 : 9;
+    controls.minDistance = id === 'tv' ? 6 : id === 'frontDesk' ? 5 : 9;
     controls.maxPolarAngle = id === 'tv' ? Math.PI / 2 : Math.PI / 2.5;
     const fixture = scene.getObjectByName('studio-overhead-fixture'); if (fixture) fixture.visible = id !== 'tv';
     controls.target.set(...zone.target);

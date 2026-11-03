@@ -8,8 +8,8 @@ import { mountTVScreen } from './office-tv.js';
 
 export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {}, tvElement = null, onTVVisibility = () => {} } = {}) {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(35, 1, .1, 100);
-  camera.position.set(...officeZones.overview.offset);
+  const camera = new THREE.PerspectiveCamera(35, 1, .1, 160);
+  camera.position.set(...officeZones.overview.target).add(new THREE.Vector3(...officeZones.overview.offset));
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
@@ -19,19 +19,20 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   container.appendChild(renderer.domElement);
   const controls = new OrbitControls(camera, container);
   container.style.touchAction = 'none';
-  controls.target.set(0, 1, 0);
+  controls.target.set(...officeZones.overview.target);
   controls.enableDamping = true;
   controls.minDistance = 9;
-  controls.maxDistance = 52;
+  controls.maxDistance = 80;
   controls.maxPolarAngle = Math.PI / 2.5;
   controls.minPolarAngle = .3;
   controls.enablePan = true;
   scene.add(new THREE.HemisphereLight('#fff3de', '#87745b', 1.9));
   const sunlight = new THREE.DirectionalLight('#ffebc5', 3.1);
-  sunlight.position.set(-7, 10, 4);
+  sunlight.position.set(-7, 22, 8);
+  sunlight.target.position.set(6, 0, 0); scene.add(sunlight.target);
   sunlight.castShadow = true;
   sunlight.shadow.mapSize.set(2048, 2048);
-  Object.assign(sunlight.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, far: 55 });
+  Object.assign(sunlight.shadow.camera, { left: -28, right: 28, top: 24, bottom: -24, far: 90 });
   sunlight.shadow.bias = -.001;
   sunlight.shadow.normalBias = .025;
   scene.add(sunlight);
@@ -128,7 +129,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     if (motion) { navigation.step(delta); animateNature?.(time); }
     agents.forEach((a, index) => {
       const phase = time + index * 1.7;
-      const state = navigation.actors.get(a.id), walking = state.pose === 'walking', standing = state.pose !== 'seated';
+      const state = navigation.actors.get(a.id), walking = state.pose === 'walking', standing = !['seated', 'bench'].includes(state.pose);
       const [x, y, z] = state.position;
       a.g.position.set(x, y + (standing ? .22 : 0) + (motion ? walking ? Math.abs(Math.sin(phase * 9)) * .035 : Math.sin(phase * 1.6) * .008 : 0), z);
       const turn = Math.atan2(Math.sin(state.heading - a.g.rotation.y), Math.cos(state.heading - a.g.rotation.y));
@@ -136,8 +137,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
       a.sittingLegs.visible = !standing;
       a.legs.forEach((leg, side) => { leg.visible = standing; leg.rotation.x = motion && walking ? Math.sin(phase * 9 + side * Math.PI) * .55 : 0; });
       a.anchor.set(x, a.g.position.y + 1.95, z); a.ring.position.set(x, y + .09, z);
-      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : standing ? 'social' : 'desk';
-      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
+      a.label.dataset.activity = walking ? 'walking' : a.working ? 'working' : state.pose === 'bench' ? 'resting' : standing ? 'social' : 'desk';
+      a.label.title = `${team.find(person => person.id === a.id).name} · ${walking ? 'Đang đi lại' : a.working ? 'Đang làm thử' : state.pose === 'bench' ? 'Nghỉ bên hồ koi' : standing ? 'Đang trò chuyện / chờ' : 'Tại bàn'}`;
       const reacting = a.reactionUntil > now;
       a.head.rotation.y = motion ? Math.sin(phase * .65) * .09 : 0;
       a.head.rotation.x = motion ? a.working ? .08 + Math.sin(phase * 3) * .035 : reacting ? Math.sin(phase * 5) * .09 : 0 : 0;
@@ -209,6 +210,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   }
   return {
     focusZone,
+    gardenBreak() { if (!motion) return []; const ids = navigation.requestGardenBreak(); needsRender = true; return ids; },
     setMotion(enabled) { motion = enabled; if (!motion) navigation.freezeAtDesks(); lastTime = performance.now(); needsRender = true; },
     isAtDesk(id) { return navigation.atDesk(id); },
     returnToDesk(id, callback) { navigation.home(id, callback); if (!motion) navigation.freezeAtDesks(); needsRender = true; },

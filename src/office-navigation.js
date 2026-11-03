@@ -8,6 +8,8 @@ export const walkNodes = {
   callStrategy: [-.65, 0, 4.7], callInsight: [-.65, 0, 6.6], callCreative: [-.65, 0, 5.8], callMedia: [.65, 0, 5.8], callAccount: [.65, 0, 6.6],
   meetingEntry: [2.4, 0, -.3], meetingA: [2.4, 0, -2], meetingB: [2.4, 0, -3.35],
   teaLow: [1.2, 0, 4.05], teaStep: [1.85, .2, 4.05], teaEntry: [2.45, .42, 4.05], teaA: [3, .42, 4.8], teaB: [3, .42, 5.85],
+  gardenPorch: [0, 0, 7.7], gardenGate: [10.7, 0, 7.7], gardenEntry: [10.7, .1, 5.9], gardenLane: [10.7, .1, 3.8],
+  gardenWestB: [10.7, .1, 2.7], gardenWestA: [10.7, .1, 1.3], gardenBenchA: [11.7, .1, 1.3], gardenBenchB: [11.7, .1, 2.7],
 };
 const links = [
   ['north', 'meetingHall'], ['meetingHall', 'middle'], ['middle', 'south'], ['north', 'strategyDoor'], ['strategyDoor', 'strategyAisle'], ['strategyAisle', 'strategy'],
@@ -16,6 +18,8 @@ const links = [
   ['south', 'socialA'], ['south', 'socialB'], ['south', 'callStrategy'], ['socialA', 'callCreative'], ['socialB', 'callMedia'], ['socialA', 'callInsight'], ['socialB', 'callAccount'],
   ['meetingHall', 'meetingEntry'], ['meetingEntry', 'meetingA'], ['meetingA', 'meetingB'],
   ['middle', 'teaLow'], ['teaLow', 'teaStep'], ['teaStep', 'teaEntry'], ['teaEntry', 'teaA'], ['teaA', 'teaB'],
+  ['south', 'gardenPorch'], ['gardenPorch', 'gardenGate'], ['gardenGate', 'gardenEntry'], ['gardenEntry', 'gardenLane'],
+  ['gardenLane', 'gardenWestB'], ['gardenWestB', 'gardenWestA'], ['gardenWestA', 'gardenBenchA'], ['gardenWestB', 'gardenBenchB'],
 ];
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
@@ -62,13 +66,14 @@ export class OfficeNavigation {
     if (actor.destination !== id || !actor.route.length) this.move(id, id, 'home');
   }
   arrive(actor) {
-    actor.pose = actor.destination === actor.id ? 'seated' : 'standing';
+    actor.pose = actor.destination === actor.id ? 'seated' : actor.destination.startsWith('gardenBench') ? 'bench' : 'standing';
+    if (actor.pose === 'bench') actor.heading = -Math.PI / 2;
     if (actor.pose === 'seated') {
       actor.heading = actor.homeRotation; actor.reason = 'home';
       const callbacks = actor.callbacks.splice(0); callbacks.forEach(callback => callback());
     } else if (actor.reason === 'idle') {
       actor.returnAt = this.time + 7; actor.reason = 'loitering';
-      this.onAmbient(actor.id, 'Mình chưa có task nên ra đi dạo một chút. Có việc mới mình về bàn ngay nhé.');
+      this.onAmbient(actor.id, actor.pose === 'bench' ? 'Mình ra ngắm koi, nghỉ một chút nhé. Có việc mới mình về bàn ngay.' : 'Mình chưa có task nên ra đi dạo một chút. Có việc mới mình về bàn ngay nhé.');
     } else if (actor.reason === 'called') {
       actor.returnAt = this.time + 13; actor.reason = 'listening'; this.onCallArrival(actor.id);
     }
@@ -78,6 +83,16 @@ export class OfficeNavigation {
     const pair = this.pair; this.pair = null;
     for (const id of pair.ids) this.home(id);
     this.nextSocial = this.time + 12;
+  }
+  requestGardenBreak() {
+    const available = [...this.actors.values()].filter(actor => !actor.busy && (this.atDesk(actor.id) || this.pair?.ids.includes(actor.id)));
+    if (!available.length) return [];
+    this.cancelPair();
+    const ids = available.slice(0, 2).map(actor => actor.id);
+    if (ids.length === 2) this.pair = { ids, metAt: null, garden: true };
+    ids.forEach((id, i) => this.move(id, i ? 'gardenBenchB' : 'gardenBenchA', ids.length === 2 ? 'social' : 'idle'));
+    this.nextSocial = this.time + 45;
+    return ids;
   }
   setBusy(id, busy) {
     const actor = this.actors.get(id); if (!actor || actor.busy === busy) return;
@@ -112,21 +127,21 @@ export class OfficeNavigation {
     if (this.pair) {
       const pair = this.pair, [a, b] = pair.ids.map(id => this.actors.get(id));
       if (!a.route.length && !b.route.length) {
-        a.heading = Math.atan2(-(b.position[0] - a.position[0]), -(b.position[2] - a.position[2])); b.heading = a.heading + Math.PI;
+        if (!pair.garden) { a.heading = Math.atan2(-(b.position[0] - a.position[0]), -(b.position[2] - a.position[2])); b.heading = a.heading + Math.PI; }
         if (!pair.metAt) pair.metAt = this.time;
         if (this.time >= this.quietUntil) {
-          if (!pair.first) { pair.first = true; this.onAmbient(a.id, `${this.getName(b.id)} ơi, mình đang rảnh. Trao đổi một chút rồi về bàn nhé?`); }
-          if (!pair.second && this.time - pair.metAt > 3) { pair.second = true; this.onAmbient(b.id, 'Ừ, mình cũng chưa có task. Có việc mới thì mình quay lại bàn ngay nhé.'); }
+          if (!pair.first) { pair.first = true; this.onAmbient(a.id, pair.garden ? `${this.getName(b.id)} ơi, ra ngắm koi với hoa anh đào một chút nhé. Tiếng thác nước dễ chịu quá!` : `${this.getName(b.id)} ơi, mình đang rảnh. Trao đổi một chút rồi về bàn nhé?`); }
+          if (!pair.second && this.time - pair.metAt > 3) { pair.second = true; this.onAmbient(b.id, pair.garden ? 'Ừ, ngồi bên hồ thư giãn chút. Có task mới mình quay về bàn ngay.' : 'Ừ, mình cũng chưa có task. Có việc mới thì mình quay lại bàn ngay nhé.'); }
         }
-        if (this.time - pair.metAt > 9) this.cancelPair();
+        if (this.time - pair.metAt > (pair.garden ? 14 : 9)) this.cancelPair();
       }
     } else if (this.time >= this.nextSocial && this.time >= this.quietUntil) {
       const order = ['creative', 'media', 'insight', 'account', 'strategy'];
       const rotated = [...order.slice(this.round % 5), ...order.slice(0, this.round % 5)];
       const free = rotated.filter(id => !this.actors.get(id).busy && this.atDesk(id));
       if (free.length >= 2) {
-        const destinations = [['socialA', 'socialB'], ['teaA', 'teaB'], ['meetingA', 'meetingB']][this.round % 3];
-        this.pair = { ids: free.slice(0, 2), metAt: null };
+        const destinations = [['socialA', 'socialB'], ['gardenBenchA', 'gardenBenchB'], ['teaA', 'teaB'], ['meetingA', 'meetingB']][this.round % 4];
+        this.pair = { ids: free.slice(0, 2), metAt: null, garden: destinations[0] === 'gardenBenchA' };
         this.pair.ids.forEach((id, index) => this.move(id, destinations[index], 'social'));
         this.round++;
       } else if (free.length === 1) { this.move(free[0], 'socialA', 'idle'); this.nextSocial = this.time + 18; } else this.nextSocial = this.time + 4;

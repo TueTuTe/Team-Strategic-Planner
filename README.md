@@ -95,3 +95,9 @@ Tivi dùng chung nằm trên vách shoji cạnh khu làm việc; màn hình đư
 - **Tắt tivi**, chuyển sang ambient, quay camera ra sau tivi hoặc rời trang văn phòng sẽ dừng video; không phát video ở một trình phát bị ẩn.
 
 Video được giữ trong iframe gốc và không sao chép vào WebGL texture. Lớp HTML được ánh xạ vào bốn góc màn hình, kết hợp mặt nạ độ sâu để các vật thể phía trước vẫn che khuất tivi đúng vị trí. Kiểm thử xác nhận URL video, mặt màn hình, bấm chuyển slide, xoay camera, mobile và thao tác dừng/chuyển nguồn bằng iframe giả lập; không khẳng định bản thu YouTube thực tế phát được trong mọi trình duyệt hoặc khu vực.
+
+## Vườn Nhật bên văn phòng
+
+Tab **Vườn Nhật** đưa camera ra khu vườn liền kề với ba cây anh đào, cánh hoa rơi, thác nước chuyển động, bảy cá koi bơi và ghế nghỉ ngắm hồ. **Toàn cảnh** cho thấy cả văn phòng lẫn vườn.
+
+Nhấn **Ra vườn nghỉ** để tối đa hai nhân viên rảnh đi theo lối gỗ và đường đá ra ghế bên hồ. Họ ngồi nghỉ, trò chuyện bằng bong bóng chữ rồi quay về bàn. Khi nhận việc mới, họ quay lại bàn trước khi bắt đầu làm. Nhân viên đang có task không tham gia nghỉ; người rảnh cũng tự ghé vườn trong chu kỳ sinh hoạt. Bật **Chuyển động** để sử dụng việc đi lại và hiệu ứng nước, cá, hoa.

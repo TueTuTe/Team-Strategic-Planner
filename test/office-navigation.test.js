@@ -25,3 +25,23 @@ test('called staff walk to the caller and a frozen scene releases waiting desk c
   let resumed = false; nav.home('creative', () => { resumed = true; });
   assert.equal(resumed, false); nav.freezeAtDesks(); assert.equal(resumed, true); assert.equal(nav.atDesk('creative'), true);
 });
+test('garden routes go around the tea lounge, rest on the bench and recall staff for work', () => {
+  const path = walkRoute('strategy', 'gardenBenchA');
+  assert.ok(path.includes('gardenPorch')); assert.ok(path.includes('gardenGate')); assert.ok(!path.includes('teaEntry'));
+  const conversation = [], nav = new OfficeNavigation({ seats, onAmbient: (id, text) => conversation.push({ id, text }) });
+  nav.setBusy('strategy', true);
+  const ids = nav.requestGardenBreak(); assert.equal(ids.length, 2); assert.ok(!ids.includes('strategy'));
+  for (let i = 0; i < 500 && nav.actors.get(ids[0]).pose !== 'bench'; i++) nav.step(.1);
+  step(nav, 2);
+  for (const id of ids) { assert.equal(nav.actors.get(id).pose, 'bench'); assert.equal(nav.actors.get(id).heading, -Math.PI / 2); }
+  assert.ok(conversation.some(message => message.text.includes('hoa anh đào')));
+  let returned = false; nav.setBusy(ids[0], true); nav.home(ids[0], () => { returned = true; });
+  assert.equal(returned, false); step(nav, 35); assert.equal(returned, true); assert.equal(nav.atDesk(ids[0]), true);
+});
+test('busy staff stay at their desks and a single free staff member can rest then return', () => {
+  const nav = new OfficeNavigation({ seats });
+  for (const id of ids) nav.setBusy(id, true);
+  assert.deepEqual(nav.requestGardenBreak(), []);
+  nav.setBusy('creative', false); assert.deepEqual(nav.requestGardenBreak(), ['creative']);
+  nav.quietFor(150); step(nav, 70); assert.equal(nav.atDesk('creative'), true);
+});

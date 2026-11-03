@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { buildNatureCorner } from './nature-corner.js';
+import { buildJapaneseGarden } from './japanese-garden.js';
 import { officeTV } from './office-tv.js';
 
 export const officeZones = {
-  overview: { label: 'Toàn cảnh', detail: '4 khu riêng · 5 chỗ làm việc · 10 màn hình', target: [0, .9, 0], offset: [22, 21, 26] },
+  overview: { label: 'Toàn cảnh', detail: 'Văn phòng & vườn Nhật · 5 nhân viên · 10 màn hình', target: [6.3, .9, 0], offset: [27, 25, 31] },
+  garden: { label: 'Vườn Nhật', detail: 'Hoa anh đào · Thác nước · Hồ koi · Ghế nghỉ bên hồ', target: [15.5, 1, -.2], offset: [10, 12, 14] },
   strategy: { label: 'Góc riêng', detail: 'Góc Strategy · Bể cá & terrarium · Lối vào mở', target: [-5.5, 1, -4.2], offset: [7.5, 7, 9] },
   studio: { label: 'Khu làm việc', detail: 'Studio · 4 chỗ làm việc, mỗi người 2 màn hình', target: [-4.8, .9, 2.3], offset: [9, 9, 11] },
   meeting: { label: 'Phòng họp', detail: 'Phòng họp · 8 chỗ · Vách kính và cửa mở', target: [5, 1, -3.7], offset: [9, 8.5, 10] },
@@ -223,5 +225,6 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
     const glow = new THREE.PointLight('#ffd398', 8, 7, 2); glow.position.set(x, 2.85, z); scene.add(glow);
   }
   const seats = { strategy: { x: -5.65, z: -5.95, rotation: Math.PI }, ...Object.fromEntries(studioSeats.map(seat => [seat.id, seat])) };
-  return { seats, monitorMeshes, animateNature };
+  const animateGarden = buildJapaneseGarden({ scene, box, cylinder, sphere, mat, textures });
+  return { seats, monitorMeshes, animateNature(time) { animateNature(time); animateGarden(time); } };
 }

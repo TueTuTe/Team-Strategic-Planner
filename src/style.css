@@ -123,6 +123,11 @@
 .tv-controls>span{font-size:8px;letter-spacing:1.2px;color:#a08a68;margin-right:auto}
 .tv-controls>button{font-size:9px;color:#846c4b;border:1px solid #ded3be;border-radius:5px;padding:7px 11px;background:#fcf9f1}
 .tv-controls>button:hover{background:#e9dfc9}
+.garden-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #dbe0cc;padding:11px 18px;background:#eef1e5}
+.garden-controls>span{font-size:8px;letter-spacing:1.2px;color:#71815a}
+.garden-controls>button{font-size:10px;color:#536644;border:1px solid #bdc9a9;border-radius:5px;padding:8px 12px;background:#fafbf5}
+.garden-controls>button:hover{background:#dde6cf}
+.garden-controls>small{font-size:9px;color:#7a846d}
 .tv-slide{height:100%;padding:42px 58px;background:#f2efdf;color:#334a36;position:relative}
 .tv-slide .tv-channel{color:#879b70;font-size:12px}
 .tv-slide-label{display:block;font-size:13px;letter-spacing:3px;color:#a18b5f;margin-top:60px}

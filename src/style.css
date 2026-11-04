@@ -140,6 +140,13 @@
 .gallery-filter{white-space:nowrap;flex-shrink:0}
 .gallery-plan-picker select{max-width:280px;min-width:120px;font-size:10px;padding:7px;border:1px solid #bdcbb0;border-radius:5px;color:#526647;background:#fafbf5}
 .gallery-filter input{accent-color:#526647}
+.gallery-artwork-large{display:block;max-width:100%;max-height:72vh;width:auto;height:auto;object-fit:contain;margin:20px auto;background:#141814;border:8px solid #69533c;border-radius:3px}
+.artwork-file-label{display:grid;gap:10px;font-size:13px;margin:18px 0;color:#53654a}
+.artwork-preview{display:grid;grid-template-columns:140px minmax(0,1fr);align-items:center;gap:15px;padding:14px 0;border-bottom:1px solid #dedecf}
+.artwork-preview img{width:140px;height:90px;object-fit:contain;background:#1a211a;border:4px solid #69533c}
+.artwork-preview span{display:grid;gap:8px;font-size:11px;color:#6b745f}
+.artwork-preview input{width:100%;min-width:0;padding:9px;border:1px solid #c5cdb9;border-radius:5px;background:#fcfaf3}
+@media(max-width:480px){.artwork-preview{grid-template-columns:90px minmax(0,1fr);gap:10px}.artwork-preview img{width:90px;height:65px}}
 @media(max-width:480px){.gallery-controls{padding:12px;gap:7px}.gallery-plan-picker{flex-wrap:wrap;max-width:100%}.gallery-plan-picker select{max-width:100%;width:100%}}
 .reception-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #e1d7c4;padding:11px 18px;background:#f2ecdf}
 .reception-controls>span{font-size:8px;letter-spacing:1.2px;color:#8c795b}

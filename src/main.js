@@ -10,6 +10,7 @@ const icons = { ArrowRight, ArrowUpRight, BriefcaseBusiness, CalendarDays, Chart
 import { createOffice } from './office.js';
 import { officeZones } from './office-layout.js';
 import { galleryEntries, galleryStatus } from './gallery-plans.js';
+import { loadArtworks, saveArtworks, validateArtwork } from './gallery-artworks.js';
 import { team, createPlan, renameMember, getPhaseOwner } from './planner.js';
 import { OfficeLife } from './office-life.js';
 import { OfficeAudio } from './office-audio.js';
@@ -34,6 +35,15 @@ for (const person of team) {
 }
 let projects = Array.isArray(saved.projects) ? saved.projects.filter(p => p && typeof p.id === 'string' && typeof p.client === 'string' && Array.isArray(p.phases) && p.phases.length === 5) : [];
 let checkedTasks = Array.isArray(saved.checkedTasks) ? saved.checkedTasks : [];
+let galleryArtworks = [], artworkLoad = 0;
+async function reloadArtworks() {
+  const version = ++artworkLoad;
+  const records = await loadArtworks();
+  if (version !== artworkLoad) return;
+  for (const artwork of galleryArtworks) URL.revokeObjectURL(artwork.imageSrc);
+  galleryArtworks = records.map(record => ({ ...record, imageSrc: URL.createObjectURL(record.blob) }));
+  refreshGallery();
+}
 let activeView = 'office', office, lastFocus, selectedAgent;
 let lifePanelDispose;
 let officialMusic;
@@ -52,12 +62,12 @@ function persist() {
 function refreshGallery() {
   if (!office || !$('#gallery-plan-select')) return;
   const select = $('#gallery-plan-select'), previous = select.value;
-  const entries = galleryEntries(projects, checkedTasks, demo, $('#gallery-completed-only').checked);
+  const entries = galleryEntries(projects, checkedTasks, demo, $('#gallery-completed-only').checked, galleryArtworks);
   office.setGalleryEntries(entries, previous);
   select.innerHTML = entries.map(entry => `<option value="${esc(entry.plan.id)}">${esc(entry.plan.client)} · ${esc(galleryStatus(entry))}</option>`).join('');
   if (entries.some(entry => entry.plan.id === previous)) select.value = previous;
   select.disabled = !entries.length; $('#gallery-open-plan').disabled = !entries.length;
-  $('#gallery-status').textContent = entries.length ? `${entries.length} plan · ${entries.filter(entry => entry.kind === 'completed').length} đã hoàn thành${entries.some(entry => entry.kind === 'demo') ? ' · Đang trưng bày dữ liệu mẫu' : ''}` : 'Chưa có plan hoàn thành. Hoàn tất các giai đoạn để trưng bày tại đây.';
+  $('#gallery-status').textContent = entries.length ? `${entries.length} ${entries.some(entry => entry.kind === 'artwork') ? 'khung' : 'plan'} · ${entries.filter(entry => entry.kind === 'completed').length} đã hoàn thành${entries.some(entry => entry.kind === 'artwork') ? ` · ${entries.filter(entry => entry.kind === 'artwork').length} ảnh kế hoạch` : ''}${entries.some(entry => entry.kind === 'demo') ? ' · Đang trưng bày dữ liệu mẫu' : ''}` : 'Chưa có plan hoàn thành. Hoàn tất các giai đoạn để trưng bày tại đây.';
   return entries;
 }
 function hydrate() { createIcons({ icons }); }
@@ -156,12 +166,12 @@ function renderOffice() {
     <div class="office-grid"><section class="office-panel"><div class="panel-top"><div class="panel-title">${icon('cuboid')}<strong>Japanese Study</strong><span class="outline-badge">Tầng 01</span></div><span class="room-status"><span></span> 5 vai trò</span></div>
       <div class="zone-bar"><div class="zone-tabs" role="group" aria-label="Góc nhìn văn phòng">${Object.entries(officeZones).map(([id, zone]) => `<button data-zone="${id}" aria-pressed="${id === 'overview'}">${zone.label}</button>`).join('')}</div><span id="zone-detail">${officeZones.overview.detail}</span><button id="motion-toggle" class="motion-toggle" aria-pressed="${motionEnabled}">${motionEnabled ? 'Chuyển động: bật' : 'Chuyển động: tắt'}</button></div>
       <div class="office-canvas-wrap"><div class="scene-corner"><span class="scene-tag">THE JAPANESE STUDY</span><span class="scene-subtitle">Studio · Góc riêng · Phòng họp · Sảnh tiếp đón · Vườn Nhật · Izakaya</span></div><div id="office-canvas" role="region" aria-label="Văn phòng 3D tương tác với 5 chuyên gia"></div><div class="scene-hint">${icon('mouse-pointer-2')} Kéo để xoay · Chọn tên để gặp đội ngũ</div><div class="scene-tools"><button class="icon-button" id="zoom-in" aria-label="Phóng to">${icon('plus')}</button><button class="icon-button" id="zoom-out" aria-label="Thu nhỏ">${icon('minus')}</button><span></span><button class="icon-button" id="reset-view" aria-label="Đặt lại góc nhìn">${icon('scan')}</button><button class="icon-button" id="top-view" aria-label="Góc nhìn từ trên">${icon('layers-2')}</button></div></div>
-      <div class="tv-controls"><span>TIVI VĂN PHÒNG</span><button id="tv-focus">Xem gần tivi</button><button id="tv-play">Phát H2H</button><button id="tv-plan">Trình chiếu kế hoạch</button><button id="tv-stop">Tắt tivi</button></div><div class="reception-controls"><span>SẢNH TIẾP ĐÓN</span><button id="reception-focus">Xem sảnh &amp; sofa</button><button id="reception-entrance-focus">Xem cửa đón khách</button><button id="reception-desk-focus">Quầy &amp; mèo thần tài</button><button id="reception-visit">Ra sảnh tiếp khách</button><small>Cửa khách phía ngoài · Cầu nội bộ · Khu chờ</small></div><div class="tv-controls reception-tv-controls"><span>TIVI SẢNH</span><button id="reception-tv-focus">Xem tivi sảnh</button><label>Nội dung <select id="reception-tv-content" aria-label="Nội dung tivi sảnh"><option value="welcome">Lời chào Atelier</option><option value="landscape">Tranh phong cảnh Nhật</option></select></label><button id="reception-tv-power" aria-pressed="true">Tắt tivi sảnh</button></div><div class="garden-controls"><span>NGHỈ BÊN HỒ KOI</span><button id="garden-break">Ra vườn nghỉ</button><small>Nhân viên rảnh sẽ đi dạo, ngắm hồ và trò chuyện.</small></div><div class="izakaya-controls"><span>IZAKAYA · SAU GIỜ LÀM</span><button id="bar-break" aria-pressed="false">Tan ca · Sang Izakaya</button><button id="bar-return">Về văn phòng</button><small id="bar-status" aria-live="polite">Qua cầu gỗ, thư giãn bên suối.</small></div><div class="gallery-controls"><div class="gallery-controls-title"><span>PHÒNG TRIỂN LÃM CHIẾN LƯỢC</span><small id="gallery-status" aria-live="polite"></small></div><button id="gallery-focus">Xem phòng triển lãm</button><button id="gallery-bridge-focus">Xem cầu từ vườn</button><button id="gallery-visit">Qua cầu xem plan</button><label class="gallery-plan-picker">Plan trưng bày <select id="gallery-plan-select" aria-label="Plan trưng bày"></select></label><label class="gallery-filter"><input type="checkbox" id="gallery-completed-only"> Chỉ plan hoàn thành</label><button id="gallery-open-plan">Mở plan trưng bày</button></div><div class="room-footer"><span><span class="live-dot"></span> Một khoảng lặng cho ý tưởng lớn</span><button class="text-link" id="meet-team">Gặp đội ngũ ${icon('arrow-right')}</button></div>
+      <div class="tv-controls"><span>TIVI VĂN PHÒNG</span><button id="tv-focus">Xem gần tivi</button><button id="tv-play">Phát H2H</button><button id="tv-plan">Trình chiếu kế hoạch</button><button id="tv-stop">Tắt tivi</button></div><div class="reception-controls"><span>SẢNH TIẾP ĐÓN</span><button id="reception-focus">Xem sảnh &amp; sofa</button><button id="reception-entrance-focus">Xem cửa đón khách</button><button id="reception-desk-focus">Quầy &amp; mèo thần tài</button><button id="reception-visit">Ra sảnh tiếp khách</button><small>Cửa khách phía ngoài · Cầu nội bộ · Khu chờ</small></div><div class="tv-controls reception-tv-controls"><span>TIVI SẢNH</span><button id="reception-tv-focus">Xem tivi sảnh</button><label>Nội dung <select id="reception-tv-content" aria-label="Nội dung tivi sảnh"><option value="welcome">Lời chào Atelier</option><option value="landscape">Tranh phong cảnh Nhật</option></select></label><button id="reception-tv-power" aria-pressed="true">Tắt tivi sảnh</button></div><div class="garden-controls"><span>NGHỈ BÊN HỒ KOI</span><button id="garden-break">Ra vườn nghỉ</button><small>Nhân viên rảnh sẽ đi dạo, ngắm hồ và trò chuyện.</small></div><div class="izakaya-controls"><span>IZAKAYA · SAU GIỜ LÀM</span><button id="bar-break" aria-pressed="false">Tan ca · Sang Izakaya</button><button id="bar-return">Về văn phòng</button><small id="bar-status" aria-live="polite">Qua cầu gỗ, thư giãn bên suối.</small></div><div class="gallery-controls"><div class="gallery-controls-title"><span>PHÒNG TRIỂN LÃM CHIẾN LƯỢC</span><small id="gallery-status" aria-live="polite"></small></div><button id="gallery-focus">Xem phòng triển lãm</button><button id="gallery-bridge-focus">Xem cầu từ vườn</button><button id="gallery-visit">Qua cầu xem plan</button><label class="gallery-plan-picker">Plan trưng bày <select id="gallery-plan-select" aria-label="Plan trưng bày"></select></label><label class="gallery-filter"><input type="checkbox" id="gallery-completed-only"> Chỉ plan hoàn thành</label><button id="gallery-open-plan">Mở plan trưng bày</button><button id="gallery-add-artworks">Treo ảnh kế hoạch</button></div><div class="room-footer"><span><span class="live-dot"></span> Một khoảng lặng cho ý tưởng lớn</span><button class="text-link" id="meet-team">Gặp đội ngũ ${icon('arrow-right')}</button></div>
     </section><div id="office-life"></div><aside class="right-column"><section class="project-panel"><div class="section-label">TRÊN BÀN LÀM VIỆC <span class="soft-badge">${projects.length ? 'Bản nháp' : 'Dự án mẫu'}</span></div><div class="client-logo">${icon('sprout')}</div><h2>${esc(current.client)}</h2><p>${esc(current.objective)}</p><div class="project-meta"><span>${icon('calendar-days')} ${esc(current.timing)}</span><span>${icon('wallet')} ${money(current.budget)}</span></div><div class="project-divider"></div><div class="plan-state"><span>Khung kế hoạch IMC</span><strong>5 giai đoạn</strong></div><div class="phase-strip"><span></span><span></span><span></span><span></span><span></span></div><div class="stacked-avatars">${team.map(p => avatar(p, 'tiny')).join('')}<span>Đủ góc nhìn, cùng mục tiêu</span></div><button class="button secondary full" id="open-current">Mở không gian dự án ${icon('arrow-up-right')}</button></section>
       <section class="inspiration"><span>${icon('lightbulb')}</span><div><h3>Good strategy starts with why.</h3><p>Đừng vội tìm ý tưởng. Hãy bắt đầu từ câu hỏi đúng.</p></div>${icon('sparkle')}</section></aside></div>
     <section class="team-section"><div class="section-heading"><div><h2>Những bộ óc phía sau ý tưởng <span class="number-tag">05</span></h2><p>Mỗi vai trò một thế mạnh. Cùng nhau tạo nên bức tranh lớn.</p></div><button class="text-link" id="all-team">Khám phá đội ngũ ${icon('arrow-right')}</button></div><div class="team-cards">${team.map(p => `<button class="team-card" data-agent="${p.id}"><div class="team-card-top">${avatar(p)}<span class="role-symbol">${icon({strategy:'compass',insight:'scan-search',creative:'pen-tool',media:'chart-no-axes-combined',account:'briefcase-business'}[p.id])}</span></div><h3>${esc(p.name)}</h3><p>${p.role}</p><div class="team-card-bottom"><span class="ready-dot"></span>Sẵn sàng nhận brief ${icon('arrow-up-right')}</div></button>`).join('')}</div></section>
     <section class="bottom-banner"><div class="banner-mark">${icon('workflow')}</div><div><h3>Từ một câu hỏi đến một chiến dịch.</h3><p>Brief → Insight → Strategy → Big Idea → IMC Plan</p></div><button class="text-link" data-action="brief">Bắt đầu hành trình ${icon('arrow-right')}</button></section>`;
-  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled, onAmbient: (id, text) => life.emit(id, text, 'ambient'), onCallArrival: id => life.emit(id, 'Em đã tới lối đi giữa văn phòng rồi sếp. Sếp cần trao đổi gì ạ?', 'arrived'), tvElement: officialMusic.surface, onTVVisibility: visible => officialMusic.setVisible(visible) }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
+  try { office = createOffice($('#office-canvas'), openAgent, { motion: motionEnabled, onAmbient: (id, text) => life.emit(id, text, 'ambient'), onCallArrival: id => life.emit(id, 'Em đã tới lối đi giữa văn phòng rồi sếp. Sếp cần trao đổi gì ạ?', 'arrived'), onGallerySelect: openGalleryEntry, tvElement: officialMusic.surface, onTVVisibility: visible => officialMusic.setVisible(visible) }); } catch (e) { $('#office-canvas').innerHTML = `<div class="webgl-fallback">${icon('cuboid')}<h3>Không thể khởi tạo góc nhìn 3D</h3><p>Hãy dùng trình duyệt hỗ trợ WebGL. Bạn vẫn có thể chọn đội ngũ và tạo brief bên dưới.</p></div>`; }
   lifePanelDispose = mountLifePanel($('#office-life'), life, { onResult: openTaskResult, onNotice: toast, onFocus: id => office?.select(id), onRun: runOfficeTask });
   $('#motion-toggle').onclick = () => {
     motionEnabled = !motionEnabled; office?.setMotion(motionEnabled);
@@ -225,14 +235,15 @@ function renderOffice() {
     if (!ids.length) { toast('Chưa có nhân viên rảnh. Hãy thử lại khi mọi người đã xong việc.'); return; }
     setZone('gallery'); toast(`${ids.map(id => team.find(p => p.id === id).name).join(' và ')} đang qua cầu từ vườn sang xem plan.`);
   };
-  const selectedGalleryEntry = () => galleryEntries(projects, checkedTasks, demo, $('#gallery-completed-only').checked).find(entry => entry.plan.id === $('#gallery-plan-select').value);
+  const selectedGalleryEntry = () => galleryEntries(projects, checkedTasks, demo, $('#gallery-completed-only').checked, galleryArtworks).find(entry => entry.plan.id === $('#gallery-plan-select').value);
   $('#gallery-completed-only').onchange = () => { refreshGallery(); setZone('gallery'); };
   $('#gallery-plan-select').onchange = () => {
     const entries = refreshGallery() || [], index = entries.findIndex(entry => entry.plan.id === $('#gallery-plan-select').value);
     setZone('gallery'); office?.focusGalleryPlan(index);
     const entry = entries[index]; if (entry) $('#zone-detail').textContent = `${entry.plan.client} · ${galleryStatus(entry)}`;
   };
-  $('#gallery-open-plan').onclick = () => { const entry = selectedGalleryEntry(); if (entry) openPlan(entry.plan); };
+  $('#gallery-open-plan').onclick = () => { const entry = selectedGalleryEntry(); if (entry) openGalleryEntry(entry); };
+  $('#gallery-add-artworks').onclick = openArtworkUpload;
   for (const id of ['gallery-focus', 'gallery-bridge-focus', 'gallery-visit', 'gallery-completed-only']) $(`#${id}`).disabled = !office;
   $('#open-current').onclick = () => openPlan(current);
   $('#meet-team').onclick = $('#all-team').onclick = () => navigate('team');
@@ -243,6 +254,47 @@ function renderOffice() {
   }
   document.querySelectorAll('[data-zone]').forEach(button => { button.disabled = !office; button.onclick = () => setZone(button.dataset.zone); });
   for (const [id, action] of [['zoom-in', () => office?.zoom(.9)], ['zoom-out', () => office?.zoom(1.1)], ['reset-view', () => setZone('overview')], ['top-view', () => office?.top()]]) $(`#${id}`).onclick = action;
+}
+function openGalleryEntry(entry) {
+  if (entry.kind !== 'artwork') { openPlan(entry.plan); return; }
+  modal(`<div class="eyebrow">ẢNH KẾ HOẠCH · PHÒNG TRIỂN LÃM</div><h2>${esc(entry.plan.client)}</h2><img class="gallery-artwork-large" src="${esc(entry.imageSrc)}" alt="${esc(entry.plan.client)}"><p class="fine-print">Ảnh gốc được giữ nguyên tỉ lệ. Đây là ảnh trưng bày, không phải toàn bộ nội dung bản kế hoạch.</p>`, true);
+}
+function openArtworkUpload() {
+  const suggestions = ['LG Electronics · Digital Market Research 2025', 'Jordan · Digital Media Proposal 2027', 'Bệnh viện Mắt Quốc tế Việt–Nga · Chiến lược truyền thông'];
+  modal(`<div class="eyebrow">TREO ẢNH KẾ HOẠCH</div><h2>Đưa những plan của bạn lên tường.</h2><p class="modal-intro">Chọn ảnh bìa hoặc trang kế hoạch PNG, JPG, WebP. Giữ nguyên ảnh gốc và đặt tên riêng cho mỗi khung.</p><form id="artwork-upload-form"><label class="artwork-file-label">Chọn ảnh kế hoạch<input id="artwork-files" type="file" accept="image/png,image/jpeg,image/webp" multiple required></label><datalist id="artwork-title-suggestions">${suggestions.map(name=>`<option value="${esc(name)}"></option>`).join('')}</datalist><div id="artwork-previews"></div><p id="artwork-error" role="alert" class="rename-error"></p><div class="modal-actions"><small>Ảnh được lưu trên trình duyệt này.</small><button class="button primary" id="artwork-save" type="submit" disabled>Treo ảnh lên tường</button></div></form>`);
+  const form = $('#artwork-upload-form'), input = $('#artwork-files'), error = $('#artwork-error'), save = $('#artwork-save');
+  let pending = [], urls = [], selection = 0;
+  input.onchange = async () => {
+    const version = ++selection;
+    save.disabled = true; error.textContent = ''; urls.forEach(URL.revokeObjectURL); urls = []; pending = [];
+    const files = [...input.files];
+    try {
+      if (files.length > 10) throw new Error('Mỗi lần chọn tối đa 10 ảnh.');
+      for (const file of files) await validateArtwork(file);
+      if (!form.isConnected || version !== selection) return;
+      pending = files;
+      $('#artwork-previews').innerHTML = files.map((file, i) => {
+        const url = URL.createObjectURL(file); urls.push(url);
+        const base = file.name.replace(/\.[^.]+$/, '');
+        const title = /jordan/i.test(base) ? suggestions[1] : /(^|[^a-z])lg([^a-z]|$)/i.test(base) ? suggestions[0] : /viet.*nga|việt.*nga|chernov/i.test(base) ? suggestions[2] : base;
+        return `<label class="artwork-preview"><img src="${esc(url)}" alt="Ảnh xem trước ${i+1}"><span>Tên khung ${i+1}<input data-artwork-title="${i}" aria-label="Tên khung ${i+1}" value="${esc(title)}" list="artwork-title-suggestions" maxlength="120" required></span></label>`;
+      }).join('');
+      save.disabled = !pending.length;
+    } catch (e) { error.textContent = e.message; }
+  };
+  form.onsubmit = async event => {
+    event.preventDefault(); if (!pending.length) return; save.disabled = true; error.textContent = '';
+    try {
+      const created = new Date().toISOString();
+      const records = pending.map((blob,i)=>({ id: crypto.randomUUID(), title: form.querySelector(`[data-artwork-title="${i}"]`).value.trim(), blob, created, batchOrder: i }));
+      if (records.some(record=>!record.title)) throw new Error('Vui lòng đặt tên cho từng khung ảnh.');
+      await saveArtworks(records); await reloadArtworks(); closeModal();
+      document.querySelector('[data-zone="gallery"]')?.click();
+      toast(`Đã treo ${records.length} ảnh kế hoạch trong phòng triển lãm.`);
+    } catch (e) { error.textContent = `Không lưu được ảnh: ${e.message}`; save.disabled = false; }
+  };
+  const observer = new MutationObserver(() => { if (!form.isConnected) { urls.forEach(URL.revokeObjectURL); observer.disconnect(); } });
+  observer.observe($('#modal-root'), { childList: true, subtree: true });
 }
 function renderProjects() {
   $('#main').innerHTML = `${viewHeader('FROM BRIEF TO IMPACT', 'Không gian dự án', 'Tập trung brief, định hướng và kế hoạch IMC ở cùng một nơi.')}<div class="notice">${icon('hard-drive')} Kế hoạch được lưu trên trình duyệt này. Xuất Markdown để chia sẻ hoặc sao lưu.</div><div class="projects-grid">${[...projects, demo].map(p => `<article class="project-list-card"><div class="section-label">${p.demo ? 'DỰ ÁN MẪU' : 'BẢN NHÁP CHIẾN LƯỢC'}${icon('folder-open')}</div><h2>${esc(p.client)}</h2><p>${esc(p.objective)}</p><div class="project-meta"><span>${icon('calendar-days')} ${esc(p.timing)}</span><span>${money(p.budget)}</span></div><div class="project-card-actions"><button class="button secondary" data-project="${p.id}">Xem kế hoạch ${icon('arrow-right')}</button>${!p.demo ? `<button class="icon-button danger" data-delete="${p.id}" aria-label="Xóa dự án ${esc(p.client)}">${icon('trash-2')}</button>` : ''}</div></article>`).join('')}<button class="new-project-card" data-action="brief">${icon('plus')}<strong>Bắt đầu một câu chuyện mới</strong><span>Tạo brief cho khách hàng của bạn</span></button></div>`;
@@ -392,4 +444,5 @@ motionPreference.addEventListener('change', event => {
   if (event.matches) { motionEnabled = false; office?.setMotion(false); const button = $('#motion-toggle'); if (button) { button.setAttribute('aria-pressed', 'false'); button.textContent = 'Chuyển động: tắt'; } }
 });
 navigate(location.hash.slice(1) || 'office');
+void reloadArtworks().catch(() => {});
 setTimeout(() => { if (!life.log.length) office?.say('strategy', 'Chào sếp! Văn phòng đã có nhịp sống mới. Chọn một người để trò chuyện hoặc giao việc nhé.', 'welcome'); }, 900);

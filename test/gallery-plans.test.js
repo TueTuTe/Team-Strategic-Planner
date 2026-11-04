@@ -13,3 +13,10 @@ test('gallery uses actual saved completion state and distinguishes drafts and de
   assert.deepEqual(galleryEntries([], [], plan('demo'), true), []);
   assert.equal(galleryEntries(plans, [], null)[0].kind, 'draft');
 });
+test('original artwork exhibits stay separate from generated plan phases', () => {
+  const artwork = { id: 'lg-cover', title: 'LG · Digital Market Research 2025', imageSrc: 'blob:test-image' };
+  const entries = galleryEntries([plan('draft')], [], null, false, [artwork]);
+  assert.equal(entries[0].kind, 'artwork'); assert.equal(entries[0].imageSrc, artwork.imageSrc);
+  assert.deepEqual(entries[0].plan.phases, []); assert.equal(galleryStatus(entries[0]), 'Ảnh kế hoạch');
+  assert.deepEqual(galleryEntries([plan('draft')], [], null, true, [artwork]).map(e=>e.plan.id), ['lg-cover']);
+});

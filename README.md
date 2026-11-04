@@ -126,3 +126,9 @@ Phòng chữ nhật dài 28,8 × 9,2 đơn vị nằm dọc mép phải của Iz
 - **Qua cầu xem plan** đưa tối đa hai nhân viên rảnh đi từ vườn sang xem và trò chuyện. Nhân viên có task không tham gia; nhận việc mới sẽ quay về bàn trước khi làm. Bật Chuyển động để sử dụng việc đi lại.
 
 Phòng trưng bày khung kế hoạch theo mẫu đang có trong ứng dụng, chưa nhập được tệp PPTX/PDF hoặc đồng bộ portfolio từ máy chủ.
+
+### Treo ảnh kế hoạch thật
+
+Nút **Treo ảnh kế hoạch** nhận tối đa 10 ảnh PNG/JPG/WebP mỗi lần, tối đa 20 MB mỗi ảnh. Bạn đặt tên từng khung trước khi lưu. Tệp ảnh gốc được giữ nguyên trong IndexedDB của trình duyệt; khung 3D và cửa sổ xem lớn giữ nguyên tỉ lệ, không cắt hoặc vẽ lại nội dung. Chọn tên trong **Plan trưng bày** để xem gần, rồi bấm trực tiếp khung trên tường hoặc **Mở plan trưng bày** để mở ảnh lớn. Ảnh vẫn có sau khi tải lại trang và được ghi rõ là **Ảnh kế hoạch**, tách khỏi các giai đoạn của plan sinh từ mẫu.
+
+Ảnh nhập trên web chỉ được lưu ở trình duyệt đã nhập, không tự gửi lên GitHub hoặc đồng bộ giữa thiết bị. Muốn gắn sẵn ảnh cho mọi người xem, cần đưa các tệp gốc vào bản triển khai. Hiện bản đóng gói chưa chứa ảnh LG, Jordan và Việt–Nga được hiển thị trong chat vì chưa nhận được các tệp ảnh có thể truy cập từ môi trường lập trình.

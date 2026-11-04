@@ -90,9 +90,19 @@ export function buildStrategyGallery({ scene, box, cylinder, sphere, mat, textur
     const display = canvasSign(`gallery-plan-${i}`, 3.5, 1.97, [34.978, 1.85, z], -Math.PI / 2);
     box(.65, .52, 2.5, 'oak', 34.4, .51, z, gallery);
     cylinder(.09, .09, .75, '#d4c5a4', 34.3, .86, z, gallery).rotation.x = Math.PI / 2;
-    return display;
+    return { ...display, mesh: gallery.getObjectByName(`gallery-plan-${i}`) };
   });
-  let entries = [], start = 0;
+  let entries = [], start = 0, changed = () => {}, disposed = false;
+  const imageCache = new Map();
+  function artworkImage(src) {
+    if (!imageCache.has(src)) {
+      const image = new Image(), record = { image, ready: false, failed: false }; imageCache.set(src, record);
+      image.onload = () => { if (!disposed) { record.ready = true; draw(); changed(); } };
+      image.onerror = () => { if (!disposed) { record.failed = true; draw(); changed(); } };
+      image.src = src;
+    }
+    return imageCache.get(src);
+  }
   function lines(ctx, value, x, y, maxWidth, size, limit) {
     const words = String(value ?? '').split(/\s+/u); let line = '', row = 0;
     for (const word of words) {
@@ -106,7 +116,18 @@ export function buildStrategyGallery({ scene, box, cylinder, sphere, mat, textur
       const entry = entries[start + i]; ctx.fillStyle = '#e9e1cc'; ctx.fillRect(0, 0, 1280, 720);
       ctx.fillStyle = '#52694f'; ctx.font = '25px sans-serif'; ctx.fillText(`ATELIER / PLAN ${String(start + i + 1).padStart(2, '0')}`, 65, 65);
       ctx.fillStyle = '#334b3d';
-      if (entry) {
+      if (entry?.kind === 'artwork') {
+        ctx.fillStyle = '#181d19'; ctx.fillRect(28, 25, 1224, 590);
+        const record = artworkImage(entry.imageSrc);
+        if (record.ready) {
+          const { image } = record, scale = Math.min(1224 / image.naturalWidth, 590 / image.naturalHeight);
+          const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
+          ctx.drawImage(image, 28 + (1224 - w) / 2, 25 + (590 - h) / 2, w, h);
+        } else {
+          ctx.fillStyle = '#e9e1cc'; ctx.font = '30px sans-serif'; ctx.fillText(record.failed ? 'Không tải được ảnh' : 'Đang treo ảnh…', 70, 300);
+        }
+        ctx.fillStyle = '#334b3d'; ctx.font = '600 30px sans-serif'; lines(ctx, entry.plan.client, 48, 666, 1180, 34, 1);
+      } else if (entry) {
         ctx.font = '600 57px sans-serif'; lines(ctx, entry.plan.client, 65, 158, 1150, 65, 2);
         ctx.font = '25px sans-serif'; ctx.fillText(galleryStatus(entry), 65, 300);
         ctx.font = '31px sans-serif'; lines(ctx, entry.plan.objective, 65, 378, 1150, 43, 3);
@@ -123,8 +144,10 @@ export function buildStrategyGallery({ scene, box, cylinder, sphere, mat, textur
   const waterLines = Array.from({ length: 30 }, (_, i) => box(.025, .008, .45 + i % 3 * .18, '#b6d7bf', 22.6 + i % 3 * 1.45, .283, -21 + Math.floor(i / 3) * 2.8, gallery));
   draw();
   return {
-    setEntries(next, selectedId) { entries = next; const index = entries.findIndex(entry => entry.plan.id === selectedId); start = index < 0 ? 0 : Math.floor(index / 5) * 5; draw(); },
+    setEntries(next, selectedId, onChange = () => {}) { entries = next; changed = onChange; const active = new Set(entries.filter(entry=>entry.kind === 'artwork').map(entry=>entry.imageSrc)); for (const [src, record] of imageCache) if (!active.has(src)) { record.image.onload = record.image.onerror = null; imageCache.delete(src); } const index = entries.findIndex(entry => entry.plan.id === selectedId); start = index < 0 ? 0 : Math.floor(index / 5) * 5; draw(); },
     showPlan(index) { if (!entries[index]) return null; start = Math.floor(index / 5) * 5; draw(); return { target: [34.95, 1.85, galleryPanelZ[index % 5]], offset: [-6.2, 2.8, 2] }; },
+    pick(raycaster) { const hit = raycaster.intersectObjects(scene.children, true).find(hit=>!(hit.object.material?.transparent && hit.object.material.opacity < .5)); if (!hit) return null; const index = displays.findIndex(d=>d.mesh === hit.object); return index < 0 ? null : entries[start + index] || null; },
+    dispose() { disposed = true; for (const record of imageCache.values()) record.image.onload = record.image.onerror = null; imageCache.clear(); },
     animate(time) { waterLines.forEach((line, i) => { line.position.z = -21.2 + ((Math.floor(i / 3) * 2.8 + time * .27) % 28.1); }); },
   };
 }

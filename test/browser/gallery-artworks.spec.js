@@ -1,0 +1,38 @@
+import { test, expect } from '@playwright/test';
+
+test('original plan images persist, appear on frames, and open full size by clicking the 3D exhibit', async ({ page }) => {
+  test.setTimeout(60000);
+  const errors=[]; page.on('pageerror',error=>errors.push(error.message));
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.addInitScript(()=>{if(top===self)localStorage.setItem('atelier-audio-v1',JSON.stringify({enabled:false}));});
+  await page.route('https://www.youtube-nocookie.com/**',route=>route.fulfill({contentType:'text/html',body:'<p>YouTube fixture</p>'}));
+  await page.goto('/');
+  const data=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=200;c.height=100;const ctx=c.getContext('2d');ctx.fillStyle='#396ac2';ctx.fillRect(0,0,200,100);ctx.fillStyle='#fff';ctx.font='18px sans-serif';ctx.fillText('TEST IMAGE',30,55);return c.toDataURL('image/png').split(',')[1];});
+  const bytes=Buffer.from(data,'base64');
+  await page.getByRole('button',{name:'Treo ảnh kế hoạch',exact:true}).click();
+  await page.locator('#artwork-files').setInputFiles(['lg-2025.png','jordan-2027.png','viet-nga.png'].map(name=>({name,mimeType:'image/png',buffer:bytes})));
+  await expect(page.getByLabel('Tên khung 1')).toHaveValue('LG Electronics · Digital Market Research 2025');
+  await expect(page.getByLabel('Tên khung 2')).toHaveValue('Jordan · Digital Media Proposal 2027');
+  await page.getByRole('button',{name:'Treo ảnh lên tường',exact:true}).click();
+  await expect(page.locator('#gallery-status')).toContainText('3 ảnh kế hoạch');
+  await page.getByLabel('Plan trưng bày').selectOption({label:'LG Electronics · Digital Market Research 2025 · Ảnh kế hoạch'});
+  await page.waitForTimeout(600);
+  await page.locator('#office-canvas').scrollIntoViewIfNeeded();
+  const box=await page.locator('#office-canvas').boundingBox();
+  await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
+  await expect(page.getByRole('dialog')).toContainText('LG Electronics · Digital Market Research 2025');
+  const image=page.locator('.gallery-artwork-large');await expect(image).toBeVisible();
+  await expect.poll(()=>image.evaluate(img=>img.naturalWidth)).toBe(200);
+  expect(await image.evaluate(img=>img.naturalHeight)).toBe(100);
+  await page.keyboard.press('Escape');await page.reload();
+  await expect(page.locator('#gallery-status')).toContainText('3 ảnh kế hoạch');
+  const stored=await page.evaluate(async()=>{const {loadArtworks}=await import('/src/gallery-artworks.js');const a=await loadArtworks();return [...new Uint8Array(await a[0].blob.arrayBuffer())];});
+  expect(Buffer.from(stored).equals(bytes)).toBe(true);
+  await page.getByLabel('Chỉ plan hoàn thành').check();await expect(page.getByLabel('Plan trưng bày').locator('option')).toHaveCount(3);
+  await page.getByRole('button',{name:'Mở plan trưng bày',exact:true}).click();await expect(page.locator('.gallery-artwork-large')).toBeVisible();await page.keyboard.press('Escape');
+  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Treo ảnh kế hoạch',exact:true}).click();
+  await page.locator('#artwork-files').setInputFiles({name:'invalid.svg',mimeType:'image/svg+xml',buffer:Buffer.from('<svg/>')});
+  await expect(page.locator('#artwork-error')).toContainText('PNG, JPG hoặc WebP');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

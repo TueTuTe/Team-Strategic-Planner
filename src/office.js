@@ -6,7 +6,7 @@ import { buildJapaneseOffice, officeZones } from './office-layout.js';
 import { OfficeNavigation } from './office-navigation.js';
 import { mountTVScreen } from './office-tv.js';
 
-export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {}, tvElement = null, onTVVisibility = () => {} } = {}) {
+export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {}, onGallerySelect = () => {}, tvElement = null, onTVVisibility = () => {} } = {}) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, .1, 160);
   camera.position.set(...officeZones.overview.target).add(new THREE.Vector3(...officeZones.overview.offset));
@@ -72,6 +72,15 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   const { seats, animateNature, receptionTV, gallery } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
   const tvLayer = tvElement ? mountTVScreen(container, scene, camera, tvElement, onTVVisibility) : null;
   const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
+  let press = null;
+  const galleryPointerDown = event => { press = null; if (event.button === 0 && !event.target.closest('button,input,select,.tv-screen,.character-bubble')) press = [event.clientX, event.clientY]; };
+  const galleryPointerUp = event => {
+    const origin = press; press = null; if (!origin || Math.hypot(event.clientX-origin[0],event.clientY-origin[1]) > 6) return;
+    const rect = container.getBoundingClientRect(), raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1, 1-(event.clientY-rect.top)/rect.height*2), camera);
+    const entry = gallery.pick(raycaster); if (entry) onGallerySelect(entry);
+  };
+  container.addEventListener('pointerdown', galleryPointerDown); container.addEventListener('pointerup', galleryPointerUp);
   const agents = [];
   const labels = document.createElement('div'); labels.className = 'scene-labels'; container.append(labels);
   labels.addEventListener('pointerdown', event => event.stopPropagation());
@@ -210,7 +219,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   }
   return {
     focusZone,
-    setGalleryEntries(entries, selectedId) { gallery.setEntries(entries, selectedId); needsRender = true; },
+    setGalleryEntries(entries, selectedId) { gallery.setEntries(entries, selectedId, () => { needsRender = true; }); needsRender = true; },
     focusGalleryPlan(index) { const view = gallery.showPlan(index); if (!view) return; controls.minDistance = 5; controls.maxPolarAngle = Math.PI / 2.5; controls.target.set(...view.target); camera.position.copy(controls.target).add(new THREE.Vector3(...view.offset)); controls.update(); needsRender = true; },
     visitGallery() { if (!motion) return []; const ids = navigation.requestGallery(); needsRender = true; return ids; },
     toggleReceptionTV() { const state = receptionTV.toggle(); needsRender = true; return state; },
@@ -242,6 +251,6 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     zoom(delta) { const offset = camera.position.clone().sub(controls.target); offset.multiplyScalar(delta); if (offset.length() >= controls.minDistance && offset.length() <= controls.maxDistance) camera.position.copy(controls.target).add(offset); needsRender = true; },
     reset() { focusZone('overview'); },
     top() { camera.position.copy(controls.target).add(new THREE.Vector3(0, 32, 11)); controls.update(); needsRender = true; },
-    dispose() { tvLayer?.dispose(); for (const record of bubbles.values()) { clearTimeout(record.timer); record.element.remove(); } bubbles.clear(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(obj => { obj.geometry?.dispose(); obj.material?.dispose(); }); Object.values(textures).forEach(texture => texture.dispose()); sunlight.shadow.dispose(); renderer.dispose(); labels.remove(); renderer.domElement.remove(); },
+    dispose() { gallery.dispose(); container.removeEventListener('pointerdown', galleryPointerDown); container.removeEventListener('pointerup', galleryPointerUp); tvLayer?.dispose(); for (const record of bubbles.values()) { clearTimeout(record.timer); record.element.remove(); } bubbles.clear(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(obj => { obj.geometry?.dispose(); obj.material?.dispose(); }); Object.values(textures).forEach(texture => texture.dispose()); sunlight.shadow.dispose(); renderer.dispose(); labels.remove(); renderer.domElement.remove(); },
   };
 }

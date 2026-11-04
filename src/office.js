@@ -5,8 +5,9 @@ import { makeOfficeTextures } from './materials.js';
 import { buildJapaneseOffice, officeZones } from './office-layout.js';
 import { OfficeNavigation } from './office-navigation.js';
 import { mountTVScreen } from './office-tv.js';
+import { receptionistCatProfile, receptionistReply } from './receptionist-cat.js';
 
-export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {}, onGallerySelect = () => {}, tvElement = null, onTVVisibility = () => {} } = {}) {
+export function createOffice(container, onSelect, { motion = true, onAmbient = () => {}, onCallArrival = () => {}, onGallerySelect = () => {}, onReceptionistSelect = () => {}, tvElement = null, onTVVisibility = () => {} } = {}) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, .1, 160);
   camera.position.set(...officeZones.overview.target).add(new THREE.Vector3(...officeZones.overview.offset));
@@ -69,7 +70,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const obj = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), mat(color));
     obj.position.set(x, y, z); obj.castShadow = true; parent.add(obj); return obj;
   }
-  const { seats, animateNature, receptionTV, gallery } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const { seats, animateNature, receptionTV, receptionist, gallery } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
   const tvLayer = tvElement ? mountTVScreen(container, scene, camera, tvElement, onTVVisibility) : null;
   const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
   let press = null;
@@ -78,6 +79,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const origin = press; press = null; if (!origin || Math.hypot(event.clientX-origin[0],event.clientY-origin[1]) > 6) return;
     const rect = container.getBoundingClientRect(), raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1, 1-(event.clientY-rect.top)/rect.height*2), camera);
+    let object = raycaster.intersectObjects(scene.children, true).find(hit=>!(hit.object.material?.transparent && hit.object.material.opacity < .5))?.object;
+    while (object) { if (object === receptionist.root) { onReceptionistSelect(); return; } object = object.parent; }
     const entry = gallery.pick(raycaster); if (entry) onGallerySelect(entry);
   };
   container.addEventListener('pointerdown', galleryPointerDown); container.addEventListener('pointerup', galleryPointerUp);
@@ -118,7 +121,11 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); connectors.append(line);
     agents.push({ id: person.id, g, head, arms, legs, sittingLegs, working: false, reactionUntil: 0, label, line, ring, anchor: new THREE.Vector3(x, base + 1.95, z) });
   });
-  let frame, needsRender = true;
+  const catLabel = document.createElement('button'); catLabel.className = 'receptionist-label'; catLabel.hidden = true;
+  catLabel.textContent = 'Mochi · Mèo lễ tân'; catLabel.setAttribute('aria-label', 'Chào Mochi, mèo lễ tân'); catLabel.onclick = onReceptionistSelect; labels.append(catLabel);
+  const catLine = document.createElementNS('http://www.w3.org/2000/svg', 'line'); connectors.append(catLine);
+  const catActor = { id: receptionistCatProfile.id, g: receptionist.root, anchor: new THREE.Vector3(), label: catLabel, line: catLine };
+  let frame, needsRender = true, currentZone = 'overview';
   document.fonts.ready.then(() => { needsRender = true; });
   const observer = new ResizeObserver(() => {
     const { width, height } = container.getBoundingClientRect();
@@ -136,6 +143,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const time = now / 1000;
     const delta = Math.min((now - lastTime) / 1000, .12); lastTime = now;
     if (motion) { navigation.step(delta); animateNature?.(time); }
+    catActor.anchor.copy(receptionist.root.position); catActor.anchor.y += 2.18;
     agents.forEach((a, index) => {
       const phase = time + index * 1.7;
       const state = navigation.actors.get(a.id), walking = state.pose === 'walking', standing = !['seated', 'bench', 'barstool', 'sofa'].includes(state.pose);
@@ -163,9 +171,9 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     connectors.setAttribute('viewBox', `0 0 ${width} ${height}`);
     const bubbleRects = [];
     for (const [id, record] of bubbles) {
-      const actor = agents.find(a => a.id === id), bubble = record.element;
+      const actor = id === catActor.id ? catActor : agents.find(a => a.id === id), bubble = record.element;
       const point = actor.anchor.clone(); point.y += .45; point.project(camera);
-      bubble.hidden = point.z > 1 || Math.abs(point.x) > 1 || Math.abs(point.y) > 1;
+      bubble.hidden = point.z > 1 || Math.abs(point.x) > 1 || Math.abs(point.y) > 1 || (id === catActor.id && !['reception', 'frontDesk', 'guestEntrance', 'receptionist'].includes(currentZone));
       if (bubble.hidden) { record.line.style.display = 'none'; continue; }
       const x = (point.x + 1) / 2 * width, y = (-point.y + 1) / 2 * height;
       const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
@@ -179,9 +187,9 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
       record.line.style.display = '';
       bubbleRects.push({ left, right: left + bw, top, bottom: top + bh });
     }
-    const projected = agents.map(({ anchor, label, line }) => {
+    const projected = [...agents, catActor].map(({ anchor, label, line, id }) => {
       const v = anchor.clone().project(camera);
-      label.hidden = v.z > 1 || v.x < -1 || v.x > 1 || v.y < -1 || v.y > 1;
+      label.hidden = v.z > 1 || v.x < -1 || v.x > 1 || v.y < -1 || v.y > 1 || (id === catActor.id && !['reception', 'frontDesk', 'guestEntrance', 'receptionist'].includes(currentZone));
       line.style.display = label.hidden ? 'none' : '';
       return { label, line, x: (v.x + 1) / 2 * width, y: (-v.y + 1) / 2 * height };
     });
@@ -209,8 +217,9 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   }
   animate(performance.now());
   function focusZone(id) {
+    currentZone = id;
     const zone = officeZones[id] || officeZones.overview;
-    controls.minDistance = ['tv', 'receptionTV'].includes(id) ? 6 : id === 'frontDesk' ? 5 : 9;
+    controls.minDistance = ['tv', 'receptionTV'].includes(id) ? 6 : ['frontDesk', 'receptionist'].includes(id) ? 5 : 9;
     controls.maxPolarAngle = id === 'tv' ? Math.PI / 2 : Math.PI / 2.5;
     const fixture = scene.getObjectByName('studio-overhead-fixture'); if (fixture) fixture.visible = id !== 'tv';
     controls.target.set(...zone.target);
@@ -219,6 +228,7 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   }
   return {
     focusZone,
+    receptionistTalk(action) { const reply = receptionistReply(action); receptionist.greet(); this.say(catActor.id, reply); return reply; },
     setGalleryEntries(entries, selectedId) { gallery.setEntries(entries, selectedId, () => { needsRender = true; }); needsRender = true; },
     focusGalleryPlan(index) { const view = gallery.showPlan(index); if (!view) return; controls.minDistance = 5; controls.maxPolarAngle = Math.PI / 2.5; controls.target.set(...view.target); camera.position.copy(controls.target).add(new THREE.Vector3(...view.offset)); controls.update(); needsRender = true; },
     visitGallery() { if (!motion) return []; const ids = navigation.requestGallery(); needsRender = true; return ids; },
@@ -228,14 +238,14 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     barBreak() { if (!motion) return []; const ids = navigation.requestBarBreak(); needsRender = true; return ids; },
     receptionVisit() { if (!motion) return []; const ids = navigation.requestReception(); needsRender = true; return ids; },
     endAfterHours() { navigation.endAfterHours(); if (!motion) navigation.freezeAtDesks(); needsRender = true; },
-    setMotion(enabled) { motion = enabled; if (!motion) navigation.freezeAtDesks(); lastTime = performance.now(); needsRender = true; },
+    setMotion(enabled) { motion = enabled; if (!motion) { navigation.freezeAtDesks(); receptionist.reset(); } lastTime = performance.now(); needsRender = true; },
     isAtDesk(id) { return navigation.atDesk(id); },
     returnToDesk(id, callback) { navigation.home(id, callback); if (!motion) navigation.freezeAtDesks(); needsRender = true; },
     setBusy(id, value) { const changed = navigation.actors.get(id)?.busy !== value; navigation.setBusy(id, value); if (!motion && value && changed) navigation.freezeAtDesks(); needsRender = true; },
     callAgent(id) { navigation.call(id); if (!motion) { const actor = navigation.actors.get(id); actor.position = [...actor.route.at(-1) || actor.position]; actor.route = []; navigation.arrive(actor); } needsRender = true; },
     setWorking(id, value) { const actor = agents.find(a => a.id === id); if (actor) actor.working = value; needsRender = true; },
     say(id, text, tone = 'greet') {
-      const person = team.find(p => p.id === id), actor = agents.find(a => a.id === id); if (!person || !actor) return;
+      const person = id === catActor.id ? receptionistCatProfile : team.find(p => p.id === id), actor = id === catActor.id ? catActor : agents.find(a => a.id === id); if (!person || !actor) return;
       const previous = bubbles.get(id); if (previous) { clearTimeout(previous.timer); previous.element.remove(); previous.line.remove(); }
       const bubble = document.createElement('aside'); bubble.className = 'character-bubble'; bubble.dataset.speaker = id; bubble.dataset.tone = tone;
       bubble.setAttribute('role', 'status'); bubble.setAttribute('aria-live', 'polite');

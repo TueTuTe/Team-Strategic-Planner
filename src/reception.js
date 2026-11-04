@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { receptionBridge, receptionBridgeHeight, receptionSofa, receptionDesk, receptionGuestEntrance } from './reception-layout.js';
 import { buildManekiNeko } from './maneki-neko.js';
 import { buildReceptionTV } from './reception-tv.js';
+import { buildReceptionistCat } from './receptionist-cat.js';
 
 export function buildReception({ scene, box, cylinder, sphere, mat, textures }) {
   const lobby = new THREE.Group(); lobby.name = 'japanese-reception'; scene.add(lobby);
@@ -157,11 +158,12 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   const counter = new THREE.Mesh(new THREE.ExtrudeGeometry(counterShape, { depth: .14, bevelEnabled: true, bevelSize: .025, bevelThickness: .025, bevelSegments: 2, curveSegments: 16 }), mat('oak'));
   counter.rotation.x = Math.PI / 2; counter.position.y = 1.42; counter.castShadow = true; desk.add(counter);
   box(.43, .025, .31, '#e2dbc2', -.5, 1.465, .19, desk);
-  const tablet = box(.46, .32, .04, '#35463d', .45, 1.64, -.12, desk); tablet.rotation.x = -.22;
+  const tablet = box(.46, .32, .04, '#35463d', 1.25, 1.64, -.12, desk); tablet.rotation.x = -.22;
   cylinder(.12, .12, .025, '#a18d65', 1.85, 1.46, -.05, desk);
   cylinder(.02, .02, .3, '#a18d65', 1.85, 1.62, -.05, desk);
   cylinder(.19, .24, .28, 'lantern', 1.85, 1.87, -.05, desk);
   const luckyCat = buildManekiNeko({ parent: desk, box, cylinder, sphere, mat }); luckyCat.cat.position.set(-1.62, 1.45, .04);
+  const receptionist = buildReceptionistCat({ parent: lobby, box, cylinder, sphere, mat });
   // The sign and shoji backdrop rotate with the desk toward arriving guests.
   const backdrop = new THREE.Group(); backdrop.name = 'reception-desk-backdrop'; backdrop.position.copy(desk.position); backdrop.rotation.y = desk.rotation.y; lobby.add(backdrop);
   box(5.2, 2.4, .055, 'paper', 0, 1.57, -1.3, backdrop);
@@ -196,8 +198,9 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   }
   const ripples = [];
   for (let i = 0; i < 24; i++) ripples.push(box(.35 + i % 4 * .12, .008, .025, '#b6d7bf', -9 + i % 12 * 1.5, .283, -8 - Math.floor(i / 12) * 2.3, lobby));
-  return { tv, animate(time) {
+  return { tv, receptionist, animate(time) {
     luckyCat.animate(time);
+    receptionist.animate(time);
     ripples.forEach((line, i) => { line.position.x = -9 + ((i % 12 * 1.5 + time * .23) % 18.2); line.position.z = -8 - Math.floor(i / 12) * 2.3 + Math.sin(time * .8 + i) * .12; });
     lanterns.forEach((lantern, i) => { lantern.rotation.z = Math.sin(time * .75 + i) * .035; });
   } };

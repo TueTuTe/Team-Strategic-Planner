@@ -153,6 +153,12 @@
 .reception-controls>button{font-size:10px;color:#65583f;border:1px solid #d1c4aa;border-radius:5px;padding:8px 12px;background:#fcf9f0}
 .reception-controls>button:hover{background:#e9dfca}
 .reception-controls>small{font-size:9px;color:#8c8069}
+.receptionist-controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:12px 18px;background:#f4e9d5;border-top:1px solid #dfd0b6}
+.receptionist-controls>span{font-size:9px;letter-spacing:1.1px;color:#8b6a46;margin-right:auto}
+.receptionist-controls>button{font-size:10px;padding:8px 12px;border:1px solid #c9b593;border-radius:5px;color:#6b573c;background:#fffbef}
+.receptionist-controls>button:hover{background:#e8d8bc}
+.receptionist-label{position:absolute;left:0;top:0;pointer-events:auto;white-space:nowrap;font-size:10px;font-weight:600;padding:7px 12px;border-radius:8px;background:#fff4d8;color:#71522e;border:1px solid #d8bd8c;box-shadow:0 3px 12px #4c391b20}
+.receptionist-label[hidden]{display:none}
 .izakaya-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #dac3a3;padding:12px 18px;background:#46382e;color:#f2dfba}
 .izakaya-controls>span{font-size:8px;letter-spacing:1.2px;color:#d3b58c}
 .izakaya-controls>button{font-size:10px;border:1px solid #a9855a;border-radius:5px;padding:8px 12px;background:#68513d;color:#ffedcc}

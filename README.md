@@ -116,6 +116,12 @@ Chọn **Sảnh tiếp đón** / **Xem sảnh & sofa** để xem gần; **Cửa 
 
 Tivi sảnh được gắn lên mặt sau vách quầy lễ tân, hướng về sofa. Chọn **Tivi sảnh** / **Xem tivi sảnh** để xem gần; đổi giữa **Lời chào Atelier** và **Tranh phong cảnh Nhật**, hoặc bật/tắt bằng hàng điều khiển **TIVI SẢNH**. Nội dung này được vẽ cục bộ, dùng được ngoại tuyến và khi tắt chuyển động. Tivi sảnh hoạt động độc lập với tivi YouTube trong văn phòng.
 
+### Mochi — mèo lễ tân
+
+Mochi là nhân vật lễ tân riêng, đứng sau quầy và hướng ra cửa khách. Chú mèo có lông vàng kem, tạp dề chàm, băng đô Nhật, chuyển động thở nhẹ, chớp mắt, đung đưa đuôi và vẫy tay khi chào. Chọn **Mochi** / **Gặp Mochi**, bấm nhãn tên hoặc bấm trực tiếp vào mèo để nhận lời chào trên nhân vật. **Mochi mời trà** và **Hỏi Mochi đường đi** có lời thoại riêng. Tắt **Chuyển động** giữ mô hình đứng yên; lời thoại chữ vẫn dùng được, giọng đọc theo tùy chọn âm thanh chung.
+
+Mochi phục vụ phần tiếp đón bằng lời thoại mô phỏng, không tham gia phân công công việc IMC của năm chuyên gia. Tượng mèo thần tài nhỏ trên mặt quầy vẫn là vật trang trí riêng.
+
 ## Phòng Triển lãm Chiến lược
 
 Phòng chữ nhật dài 28,8 × 9,2 đơn vị nằm dọc mép phải của Izakaya và vườn. Một nhánh suối rộng 4,2 đơn vị ngăn phòng với cả hai khu, nối tiếp dòng nước hiện có. Cửa duy nhất nằm ở đầu phía vườn, nối bằng cầu gỗ cong; phía giáp Izakaya có vách kín. Nội thất gồm vách shoji, đèn giấy, năm khung trưng bày, bàn xem bản vẽ và ghế nghỉ.

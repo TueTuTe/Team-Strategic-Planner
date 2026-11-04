@@ -6,6 +6,7 @@ import { buildReception } from './reception.js';
 import { officeTV } from './office-tv.js';
 import { receptionTV } from './reception-layout.js';
 import { buildStrategyGallery } from './strategy-gallery.js';
+import { buildAquaticLife } from './aquatic-life.js';
 
 export const officeZones = {
   overview: { label: 'Toàn cảnh', detail: 'Văn phòng · Sảnh · Vườn · Izakaya · Triển lãm Chiến lược', target: [11, .9, -6], offset: [40, 39, 47] },
@@ -18,6 +19,7 @@ export const officeZones = {
   receptionTV: { label: 'Tivi sảnh', detail: 'Tivi gắn mặt vách hướng về sofa · Lời chào Atelier / Tranh phong cảnh', target: [...receptionTV.position], offset: [6, 2.5, -.4] },
   receptionBridge: { label: 'Cầu đèn lồng', detail: 'Lối nội bộ Văn phòng ↔ Sảnh · Cầu gỗ treo đèn lồng trên suối', target: [.3, 1, -9.4], offset: [7, 13, 9] },
   garden: { label: 'Vườn Nhật', detail: 'Hoa anh đào · Thác nước · Hồ koi · Ghế nghỉ bên hồ', target: [15.5, 1, -.2], offset: [10, 12, 14] },
+  shark: { label: 'Cá mập', detail: 'Theo dõi cá mập · 48 cá koi bơi trong hồ và các nhánh suối', target: [15.5, .16, -9], offset: [3, 9, -6] },
   izakaya: { label: 'Izakaya', detail: 'Bar sau vườn · Cầu gỗ qua suối · Đèn lồng & quầy sake', target: [15.6, 1.25, -16], offset: [10, 11, 15] },
   bridge: { label: 'Cầu qua suối', detail: 'Lối từ vườn sang Izakaya · Suối nối hồ koi', target: [15.2, .6, -8.6], offset: [10, 12, 13] },
   strategy: { label: 'Góc riêng', detail: 'Góc Strategy · Bể cá & terrarium · Lối vào mở', target: [-5.5, 1, -4.2], offset: [7.5, 7, 9] },
@@ -248,5 +250,6 @@ export function buildJapaneseOffice({ scene, box, cylinder, sphere, mat, texture
   const animateIzakaya = buildIzakaya({ scene, box, cylinder, sphere, mat, textures });
   const reception = buildReception({ scene, box, cylinder, sphere, mat, textures });
   const gallery = buildStrategyGallery({ scene, box, cylinder, sphere, mat, textures });
-  return { seats, monitorMeshes, receptionTV: reception.tv, receptionist: reception.receptionist, gallery, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); reception.animate(time); gallery.animate(time); } };
+  const aquatics = buildAquaticLife({ scene });
+  return { seats, monitorMeshes, receptionTV: reception.tv, receptionist: reception.receptionist, gallery, aquatics, animateNature(time) { animateNature(time); animateGarden(time); animateIzakaya(time); reception.animate(time); gallery.animate(time); aquatics.animate(time); } };
 }

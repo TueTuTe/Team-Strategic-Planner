@@ -14,7 +14,7 @@ export function buildJapaneseGarden({ scene, box, cylinder, sphere, mat, texture
   }
   // Shallow pond bed and a transparent surface reveal the animated koi.
   const pond = new THREE.Group(); pond.name = 'garden-koi-pond'; pond.position.set(17.05, 0, -1.1); garden.add(pond);
-  const bed = cylinder(1, 1, .13, '#3f786d', 0, .06, 0, pond); bed.scale.set(3.7, 1, 3.75);
+  const bed = cylinder(1, 1, .13, '#3f786d', 0, 0, 0, pond); bed.scale.set(3.7, 1, 3.75);
   const waterMaterial = new THREE.MeshStandardMaterial({ color: '#88c4ad', transparent: true, opacity: .3, depthWrite: false, roughness: .2, metalness: .12 });
   const water = new THREE.Mesh(new THREE.CircleGeometry(1, 72), waterMaterial); water.rotation.x = -Math.PI / 2; water.scale.set(3.65, 3.7, 1); water.position.y = .27; pond.add(water);
   const stoneGeometry = new THREE.IcosahedronGeometry(1, 1), stones = new THREE.InstancedMesh(stoneGeometry, mat('#939783'), 40);
@@ -27,17 +27,6 @@ export function buildJapaneseGarden({ scene, box, cylinder, sphere, mat, texture
     dummy.rotation.set(i * .6, i * 1.7, .2); dummy.scale.set(.4 + (i % 3) * .08, .29 + (i % 2) * .1, .33 + (i % 4) * .04); dummy.updateMatrix(); stones.setMatrixAt(stoneIndex++, dummy.matrix);
   }
   stones.castShadow = true; stones.receiveShadow = true; pond.add(stones);
-  const koi = [];
-  for (let i = 0; i < 7; i++) {
-    const fish = new THREE.Group(); fish.name = `garden-koi-${i + 1}`; pond.add(fish);
-    const body = sphere(.17, i % 3 ? '#eee5d2' : '#c88c42', 0, 0, 0, fish); body.scale.set(2.15, .45, .75);
-    for (let patch = 0; patch < 3; patch++) {
-      const marking = sphere(.092, (i + patch) % 3 ? '#cb6f3b' : '#4d5447', -.2 + patch * .17, .063, Math.sin(i + patch) * .035, fish); marking.scale.set(1.1, .28, .92);
-    }
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(.13, .25, 3), mat('#dfccb0')); tail.rotation.z = Math.PI / 2; tail.position.x = -.42; tail.scale.z = .35; fish.add(tail);
-    for (const z of [-.07, .07]) sphere(.013, '#303d33', .25, .05, z, fish);
-    koi.push({ fish, tail, phase: i * .93, radius: 1.8 + i % 3 * .45 });
-  }
   // Tiered stones create a small waterfall that empties into the north of the pond.
   for (let level = 0; level < 4; level++) for (let i = 0; i < 4 - level; i++) {
     const rock = sphere(.68, ['#7d8677', '#929681', '#a4a791'][i % 3], 17.35 + i * .62 - level * .05, .4 + level * .68, -5.8 - level * .13, garden);
@@ -99,10 +88,6 @@ export function buildJapaneseGarden({ scene, box, cylinder, sphere, mat, texture
   const petals = new THREE.InstancedMesh(new THREE.SphereGeometry(.065, 6, 4), mat('#f1cbd2'), 27); petals.name = 'garden-falling-petals'; garden.add(petals);
   return time => {
     flowTexture.offset.y = -time * .5;
-    koi.forEach(({ fish, tail, phase, radius }) => {
-      const t = time * .2 + phase; fish.position.set(Math.cos(t) * radius, .205, Math.sin(t) * radius * .82);
-      fish.rotation.y = Math.atan2(-Math.cos(t), -Math.sin(t)); tail.rotation.y = Math.sin(time * 5 + phase) * .3;
-    });
     foam.forEach((drop, i) => { drop.position.y = .3 + Math.abs(Math.sin(time * 2.8 + i)) * .12; drop.position.z = -4.65 + Math.sin(time + i) * .12; });
     ripples.forEach((ring, i) => ring.scale.setScalar(1 + Math.sin(time * 1.4 - i) * .15));
     for (let i = 0; i < 27; i++) {

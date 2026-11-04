@@ -5,9 +5,9 @@ export function buildIzakaya({ scene, box, cylinder, sphere, mat, textures }) {
   const bar = new THREE.Group(); bar.name = 'izakaya-after-hours'; scene.add(bar);
   // The stream occupies the gap between the garden and the rear pavilion.
   box(12.8, .38, 4.5, 'walnut', 15.6, -.23, -9.4, bar);
-  box(12.65, .09, 4.38, '#487f75', 15.6, .14, -9.4, bar);
-  const waterMaterial = new THREE.MeshStandardMaterial({ color: '#85bdac', roughness: .22, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide });
-  const stream = new THREE.Mesh(new THREE.PlaneGeometry(12.65, 4.38), waterMaterial);
+  box(12.65, .09, 4.38, '#487f75', 15.6, -.04, -9.4, bar);
+  const waterMaterial = new THREE.MeshStandardMaterial({ color: '#85bdac', roughness: .22, transparent: true, opacity: .32, depthWrite: false, side: THREE.DoubleSide });
+  const stream = new THREE.Mesh(new THREE.PlaneGeometry(12.8, 4.4), waterMaterial);
   stream.rotation.x = -Math.PI / 2; stream.position.set(15.6, .27, -9.4); stream.name = 'izakaya-stream'; bar.add(stream);
   const outletShape = new THREE.Shape();
   outletShape.moveTo(18.6, -2.9); outletShape.bezierCurveTo(19.9, -4.6, 20.4, -5.9, 19.25, -8.5);

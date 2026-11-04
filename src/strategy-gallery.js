@@ -6,8 +6,8 @@ export function buildStrategyGallery({ scene, box, cylinder, sphere, mat, textur
   const gallery = new THREE.Group(); gallery.name = 'strategy-gallery'; scene.add(gallery);
   // A continuous river separates the entire building from both the garden and bar.
   box(4.2, .38, 28.8, 'walnut', 24.1, -.23, -7.2, gallery);
-  box(4.18, .09, 28.8, '#487f75', 24.1, .14, -7.2, gallery);
-  const river = new THREE.Mesh(new THREE.PlaneGeometry(4.18, 28.8), new THREE.MeshStandardMaterial({ color: '#85bdac', transparent: true, opacity: .7, roughness: .25, depthWrite: false }));
+  box(4.18, .09, 28.8, '#487f75', 24.1, -.04, -7.2, gallery);
+  const river = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 28.8), new THREE.MeshStandardMaterial({ color: '#85bdac', transparent: true, opacity: .32, roughness: .25, depthWrite: false }));
   river.rotation.x = -Math.PI / 2; river.position.set(24.1, .27, -7.2); river.name = 'gallery-separating-river'; gallery.add(river);
   const rocks = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), mat('#929580'), 120), dummy = new THREE.Object3D(); let count = 0;
   for (const x of [22.05, 26.15]) for (let i = 0; i < 58; i++) {

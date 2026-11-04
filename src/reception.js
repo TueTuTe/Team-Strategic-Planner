@@ -8,8 +8,8 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   const lobby = new THREE.Group(); lobby.name = 'japanese-reception'; scene.add(lobby);
   // Continue the same stream west from the garden–Izakaya channel.
   box(18.5, .38, 4.5, 'walnut', .05, -.23, -9.4, lobby);
-  box(18.5, .09, 4.38, '#487f75', .05, .14, -9.4, lobby);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(18.5, 4.38), new THREE.MeshStandardMaterial({ color: '#85bdac', roughness: .22, transparent: true, opacity: .7, depthWrite: false }));
+  box(18.5, .09, 4.38, '#487f75', .05, -.04, -9.4, lobby);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(18.5, 4.4), new THREE.MeshStandardMaterial({ color: '#85bdac', roughness: .22, transparent: true, opacity: .32, depthWrite: false }));
   water.rotation.x = -Math.PI / 2; water.position.set(.05, .27, -9.4); water.name = 'reception-stream-continuation'; lobby.add(water);
   const stones = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), mat('#929580'), 64), dummy = new THREE.Object3D();
   let index = 0;
@@ -67,7 +67,7 @@ export function buildReception({ scene, box, cylinder, sphere, mat, textures }) 
   for (const x of [-9, 8.1]) box(.2, .2, 9.55, 'walnut', x, 4.06, -16.65, lobby);
   const separation = new THREE.Group(); separation.name = 'reception-izakaya-separation'; lobby.add(separation);
   box(.95, .38, 10, 'walnut', 8.75, -.23, -16.6, separation);
-  box(.95, .08, 10, '#487f75', 8.75, .14, -16.6, separation);
+  box(.95, .08, 10, '#487f75', 8.75, -.04, -16.6, separation);
   const sideStream = new THREE.Mesh(new THREE.PlaneGeometry(.95, 10), water.material); sideStream.rotation.x = -Math.PI / 2; sideStream.position.set(8.75, .27, -16.6); separation.add(sideStream);
   box(.13, 3.35, 9.35, '#d8c9aa', 8.14, 1.94, -16.65, separation);
   box(.16, .65, 9.45, 'walnut', 8.05, .58, -16.65, separation);

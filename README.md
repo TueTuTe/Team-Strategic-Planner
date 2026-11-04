@@ -98,7 +98,7 @@ Video được giữ trong iframe gốc và không sao chép vào WebGL texture.
 
 ## Vườn Nhật bên văn phòng
 
-Tab **Vườn Nhật** đưa camera ra khu vườn liền kề với ba cây anh đào, cánh hoa rơi, thác nước chuyển động, bảy cá koi bơi và ghế nghỉ ngắm hồ. **Toàn cảnh** cho thấy cả văn phòng lẫn vườn.
+Tab **Vườn Nhật** đưa camera ra khu vườn liền kề với ba cây anh đào, cánh hoa rơi, thác nước chuyển động, đàn cá koi bơi và ghế nghỉ ngắm hồ. **Toàn cảnh** cho thấy cả văn phòng lẫn vườn.
 
 Nhấn **Ra vườn nghỉ** để tối đa hai nhân viên rảnh đi theo lối gỗ và đường đá ra ghế bên hồ. Họ ngồi nghỉ, trò chuyện bằng bong bóng chữ rồi quay về bàn. Khi nhận việc mới, họ quay lại bàn trước khi bắt đầu làm. Nhân viên đang có task không tham gia nghỉ; người rảnh cũng tự ghé vườn trong chu kỳ sinh hoạt. Bật **Chuyển động** để sử dụng việc đi lại và hiệu ứng nước, cá, hoa.
 
@@ -138,3 +138,9 @@ Phòng trưng bày khung kế hoạch theo mẫu đang có trong ứng dụng, c
 Nút **Treo ảnh kế hoạch** nhận tối đa 10 ảnh PNG/JPG/WebP mỗi lần, tối đa 20 MB mỗi ảnh. Bạn đặt tên từng khung trước khi lưu. Tệp ảnh gốc được giữ nguyên trong IndexedDB của trình duyệt; khung 3D và cửa sổ xem lớn giữ nguyên tỉ lệ, không cắt hoặc vẽ lại nội dung. Chọn tên trong **Plan trưng bày** để xem gần, rồi bấm trực tiếp khung trên tường hoặc **Mở plan trưng bày** để mở ảnh lớn. Ảnh vẫn có sau khi tải lại trang và được ghi rõ là **Ảnh kế hoạch**, tách khỏi các giai đoạn của plan sinh từ mẫu.
 
 Ảnh nhập trên web chỉ được lưu ở trình duyệt đã nhập, không tự gửi lên GitHub hoặc đồng bộ giữa thiết bị. Muốn gắn sẵn ảnh cho mọi người xem, cần đưa các tệp gốc vào bản triển khai. Hiện bản đóng gói chưa chứa ảnh LG, Jordan và Việt–Nga được hiển thị trong chat vì chưa nhận được các tệp ảnh có thể truy cập từ môi trường lập trình.
+
+## Cá koi và cá mập trong hệ suối
+
+Có 48 cá koi ngoài trời: 24 con trong hồ, 20 con bơi theo đường nước nối hồ với các nhánh suối, và 4 con nhỏ trong nhánh hẹp giữa sảnh và Izakaya. Một cá mập mô phỏng bơi qua hồ, suối chính và nhánh triển lãm, đi dưới cả cầu lễ tân, cầu Izakaya và cầu triển lãm. Cá giữ trong phần nước; mặt cầu che cá khi bơi bên dưới.
+
+Chọn **Cá mập** / **Theo dõi cá mập** để camera đi theo cá, vẫn có thể xoay hoặc phóng to. Chọn góc nhìn khác để dừng theo dõi. Tắt **Chuyển động** sẽ dừng cả cá và camera; khi bật lại, cá tiếp tục từ vị trí cũ. Vật liệu nước được làm trong hơn để nhìn rõ cá bên dưới.

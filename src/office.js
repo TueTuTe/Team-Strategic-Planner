@@ -70,7 +70,8 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const obj = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), mat(color));
     obj.position.set(x, y, z); obj.castShadow = true; parent.add(obj); return obj;
   }
-  const { seats, animateNature, receptionTV, receptionist, gallery } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const { seats, animateNature, receptionTV, receptionist, gallery, aquatics } = buildJapaneseOffice({ scene, box, cylinder, sphere, mat, textures });
+  const lastSharkPosition = aquatics.shark.position.clone();
   const tvLayer = tvElement ? mountTVScreen(container, scene, camera, tvElement, onTVVisibility) : null;
   const navigation = new OfficeNavigation({ seats, getName: id => team.find(person => person.id === id).name, onAmbient, onCallArrival });
   let press = null;
@@ -143,6 +144,11 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
     const time = now / 1000;
     const delta = Math.min((now - lastTime) / 1000, .12); lastTime = now;
     if (motion) { navigation.step(delta); animateNature?.(time); }
+    if (currentZone === 'shark') {
+      const movement = aquatics.shark.position.clone().sub(lastSharkPosition);
+      camera.position.add(movement); controls.target.add(movement); controls.update();
+    }
+    lastSharkPosition.copy(aquatics.shark.position);
     catActor.anchor.copy(receptionist.root.position); catActor.anchor.y += 2.18;
     agents.forEach((a, index) => {
       const phase = time + index * 1.7;
@@ -219,10 +225,11 @@ export function createOffice(container, onSelect, { motion = true, onAmbient = (
   function focusZone(id) {
     currentZone = id;
     const zone = officeZones[id] || officeZones.overview;
-    controls.minDistance = ['tv', 'receptionTV'].includes(id) ? 6 : ['frontDesk', 'receptionist'].includes(id) ? 5 : 9;
+    controls.minDistance = ['tv', 'receptionTV', 'shark'].includes(id) ? 6 : ['frontDesk', 'receptionist'].includes(id) ? 5 : 9;
     controls.maxPolarAngle = id === 'tv' ? Math.PI / 2 : Math.PI / 2.5;
     const fixture = scene.getObjectByName('studio-overhead-fixture'); if (fixture) fixture.visible = id !== 'tv';
     controls.target.set(...zone.target);
+    if (id === 'shark') { controls.target.copy(aquatics.shark.position); lastSharkPosition.copy(aquatics.shark.position); }
     camera.position.copy(controls.target).add(new THREE.Vector3(...zone.offset));
     controls.update(); needsRender = true;
   }
